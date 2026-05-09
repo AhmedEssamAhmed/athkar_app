@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Manages global app settings: theme mode, locale (language), and
-/// persists choices to SharedPreferences for offline use.
+/// Manages global app settings: theme mode, locale (language), onboarding
+/// state, and persists choices to SharedPreferences for offline use.
 class SettingsProvider extends ChangeNotifier {
   static const _keyThemeMode = 'theme_mode';
   static const _keyLocale = 'locale';
+  static const _keyOnboarded = 'is_onboarded';
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale _locale = const Locale('ar'); // Default to Arabic
+  bool _isOnboarded = false;
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
   bool get isArabic => _locale.languageCode == 'ar';
+  bool get isOnboarded => _isOnboarded;
   TextDirection get textDirection =>
       isArabic ? TextDirection.rtl : TextDirection.ltr;
 
@@ -33,7 +36,17 @@ class SettingsProvider extends ChangeNotifier {
       _locale = Locale(savedLocale);
     }
 
+    _isOnboarded = prefs.getBool(_keyOnboarded) ?? false;
+
     notifyListeners();
+  }
+
+  /// Mark onboarding as complete so Splash skips it on next launch.
+  Future<void> completeOnboarding() async {
+    _isOnboarded = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnboarded, true);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

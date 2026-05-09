@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ────────────────────────────────────────────────────────────
+# Backend / Python related
+# ────────────────────────────────────────────────────────────
+# NEVER COMMIT YOUR .env FILE! It contains your secret API keys!
+.env
+.env.*
+!.env.example
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+.pytest_cache/

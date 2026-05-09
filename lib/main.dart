@@ -3,16 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'core/storage/hive_service.dart';
+
 import 'core/theme/app_theme.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/tasbeeh_provider.dart';
+import 'screens/entry/splash_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/athkar/athkar_screen.dart';
 import 'screens/quran/quran_screen.dart';
 import 'screens/tasbeeh/tasbeeh_screen.dart';
-import 'screens/qibla/qibla_screen.dart';
-import 'screens/mosques/mosques_screen.dart';
-import 'screens/reminders/reminders_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 void main() async {
@@ -21,6 +21,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Initialize Hive offline storage
+  await HiveService.init();
 
   final settingsProvider = SettingsProvider();
   await settingsProvider.init();
@@ -55,7 +58,7 @@ class NoorAthkarApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const AppShell(),
+      home: const SplashScreen(),
     );
   }
 }
