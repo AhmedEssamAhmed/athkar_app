@@ -18,6 +18,9 @@ dependencies:
   intl: ^0.20.2
   shared_preferences: ^2.2.2
   http: ^1.2.0
+  flutter_compass: ^0.8.0
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:
@@ -38,5 +41,3 @@ flutter:
         - asset: assets/fonts/Amiri-Regular.ttf
         - asset: assets/fonts/Amiri-Bold.ttf
           weight: 700
-
- 

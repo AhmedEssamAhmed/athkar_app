@@ -12,7 +12,6 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<SettingsProvider>();
     final isAr = s.isArabic;
-    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: Text(isAr ? 'الإعدادات' : 'Settings')),
@@ -66,7 +65,7 @@ class _SettingsTile extends StatelessWidget {
         trailing = Switch.adaptive(
           value: true, // TODO: wire to actual preference
           onChanged: (_) {},
-          activeColor: cs.primary,
+          activeTrackColor: cs.primary,
         );
         break;
       case 'about':

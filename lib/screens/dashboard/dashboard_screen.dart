@@ -7,7 +7,6 @@ import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../modules/prayer_module.dart';
 import '../../main.dart';
-import '../athkar/athkar_screen.dart';
 import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
@@ -26,7 +25,6 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final isAr = settings.isArabic;
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final hijri = PrayerData.todayHijri();
     final prayers = PrayerData.todayPrayers();
