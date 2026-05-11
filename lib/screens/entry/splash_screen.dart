@@ -61,13 +61,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigate() {
-    final settings = context.read<SettingsProvider>();
-    final dest = settings.isOnboarded
-        ? const AppShell() as Widget
-        : const OnboardingScreen();
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => dest,
+        pageBuilder: (_, __, ___) => const OnboardingScreen(),
         transitionDuration: const Duration(milliseconds: 600),
         transitionsBuilder: (_, a, __, child) =>
             FadeTransition(opacity: a, child: child),

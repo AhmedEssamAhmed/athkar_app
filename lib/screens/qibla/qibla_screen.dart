@@ -173,6 +173,29 @@ class _QiblaScreenState extends State<QiblaScreen>
     return (bearing + 360) % 360;
   }
 
+  /// Recalibrate: re-fetch location, recalculate Qibla bearing, restart compass.
+  Future<void> _recalibrate() async {
+    // Cancel existing compass subscription
+    _compassSub?.cancel();
+
+    setState(() {
+      _status = 'initializing';
+      _currentHeading = 0;
+    });
+
+    // Re-fetch fresh location
+    await _getLocation();
+
+    // Restart compass stream
+    if (!kIsWeb) {
+      _startCompass();
+    } else {
+      setState(() {
+        _status = _qiblaBearing != null ? 'ready' : 'no_sensor';
+      });
+    }
+  }
+
   String _getDirectionLabel(double bearing, bool isAr) {
     final directions = isAr
         ? ['شمال', 'شمال شرق', 'شرق', 'جنوب شرق', 'جنوب', 'جنوب غرب', 'غرب', 'شمال غرب']
@@ -359,9 +382,29 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         const Spacer(),
 
+        // Recalibrate button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _recalibrate,
+              icon: const Icon(Icons.explore_rounded, size: 20),
+              label: Text(isAr ? 'إعادة معايرة البوصلة' : 'Recalibrate Compass'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.primary,
+                side: BorderSide(color: cs.primary.withAlpha(120)),
+                shape: const StadiumBorder(),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
         // Calibration tip
         Padding(
-          padding: const EdgeInsets.all(AppTheme.marginMobile),
+          padding: const EdgeInsets.fromLTRB(AppTheme.marginMobile, 0, AppTheme.marginMobile, AppTheme.marginMobile),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

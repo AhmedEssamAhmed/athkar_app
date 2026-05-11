@@ -88,15 +88,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         child: Stack(
           children: [
             // Page content
-            PageView.builder(
-              controller: _pageCtrl,
-              onPageChanged: _onPageChanged,
-              reverse: true, // Arabic reads right-to-left
-              itemCount: QuranMeta.totalPages,
-              itemBuilder: (context, index) {
-                final pageNum = index + 1;
-                return _buildQuranPage(pageNum, cs, isAr);
-              },
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: PageView.builder(
+                controller: _pageCtrl,
+                onPageChanged: _onPageChanged,
+                reverse: false, // Swipe left-to-right to go to next page (like a real Quran)
+                itemCount: QuranMeta.totalPages,
+                itemBuilder: (context, index) {
+                  final pageNum = index + 1;
+                  return _buildQuranPage(pageNum, cs, isAr);
+                },
+              ),
             ),
 
             // Top bar
@@ -468,10 +471,9 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            // Slider row
             Row(
               children: [
-                Text('$totalPages', style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
+                Text('1', style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
                 Expanded(
                   child: Directionality(
                     textDirection: TextDirection.rtl,
@@ -487,7 +489,7 @@ class _BottomBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text('1', style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
+                Text('$totalPages', style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
               ],
             ),
           ],
