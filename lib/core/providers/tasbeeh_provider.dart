@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../storage/hive_service.dart';
+
 /// State management for the Tasbeeh (digital counter) feature.
 ///
 /// Supports multiple dhikr presets, count tracking, target goals,
@@ -10,6 +12,19 @@ class TasbeehProvider extends ChangeNotifier {
   int _totalCount = 0; // lifetime total across resets
   int _targetCount = 33;
   String _currentDhikr = 'سبحان الله';
+
+  TasbeehProvider() {
+    _init();
+  }
+
+  void _init() {
+    _totalCount = HiveService.lifetimeTotal();
+    _currentDhikr = HiveService.getCachedValue('last_dhikr') as String? ?? 'سبحان الله';
+    _count = HiveService.getCachedValue('count_$_currentDhikr') as int? ?? 0;
+    
+    final preset = presets.firstWhere((p) => p['text'] == _currentDhikr, orElse: () => presets.first);
+    _targetCount = preset['target'] as int;
+  }
 
   int get count => _count;
   int get totalCount => _totalCount;
@@ -37,12 +52,14 @@ class TasbeehProvider extends ChangeNotifier {
     if (haptic) {
       HapticFeedback.lightImpact();
     }
+    HiveService.cacheValue('count_$_currentDhikr', _count);
     notifyListeners();
   }
 
   /// Reset the current session counter to 0.
   void reset() {
     _count = 0;
+    HiveService.cacheValue('count_$_currentDhikr', 0);
     notifyListeners();
   }
 
@@ -56,7 +73,9 @@ class TasbeehProvider extends ChangeNotifier {
   void selectPreset(Map<String, dynamic> preset) {
     _currentDhikr = preset['text'] as String;
     _targetCount = preset['target'] as int;
-    _count = 0;
+    _count = HiveService.getCachedValue('count_$_currentDhikr') as int? ?? 0;
+    
+    HiveService.cacheValue('last_dhikr', _currentDhikr);
     notifyListeners();
   }
 
