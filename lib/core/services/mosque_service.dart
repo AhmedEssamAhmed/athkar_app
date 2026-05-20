@@ -7,13 +7,15 @@ class Mosque {
   final double lat;
   final double lng;
   final double? rating;
+  double distance;
 
-  const Mosque({
+  Mosque({
     required this.name,
     required this.address,
     required this.lat,
     required this.lng,
     this.rating,
+    this.distance = 0.0,
   });
 
   factory Mosque.fromJson(Map<String, dynamic> json) => Mosque(

@@ -29,7 +29,6 @@ from pydantic import BaseModel
 
 # ── Load environment variables ────────────────────────────────────
 load_dotenv()
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 
 # ── FastAPI app ───────────────────────────────────────────────────
 app = FastAPI(
@@ -82,40 +81,53 @@ async def nearby_mosques(
     lng: float = Query(..., description="User longitude"),
     radius: int = Query(3000, description="Search radius in metres"),
 ):
-    """Return mosques near the user via Google Places Nearby Search."""
-    if not GOOGLE_MAPS_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="GOOGLE_MAPS_API_KEY is not configured on the server.",
-        )
-
-    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-    params = {
-        "location": f"{lat},{lng}",
-        "radius": radius,
-        "type": "mosque",
-        "key": GOOGLE_MAPS_API_KEY,
+    """Return mosques near the user via OpenStreetMap Overpass API."""
+    url = "https://overpass-api.de/api/interpreter"
+    query = f"""[out:json][timeout:15];(node["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});way["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});relation["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng}););out center;"""
+    
+    headers = {
+        "User-Agent": "NoorAthkarApp/1.0 (contact@noorathkar.com)",
+        "Accept": "application/json"
     }
-
-    resp = await http_client.get(url, params=params)
+    
+    resp = await http_client.post(url, data={"data": query}, headers=headers)
+    
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Overpass API error: {resp.status_code}")
+    
     data = resp.json()
-
-    if data.get("status") not in ("OK", "ZERO_RESULTS"):
-        raise HTTPException(status_code=502, detail=data.get("status"))
-
+    elements = data.get("elements", [])
+    
     results: list[MosqueResult] = []
-    for place in data.get("results", []):
-        loc = place["geometry"]["location"]
-        results.append(
-            MosqueResult(
-                name=place.get("name", ""),
-                address=place.get("vicinity", ""),
-                lat=loc["lat"],
-                lng=loc["lng"],
-                rating=place.get("rating"),
+    for place in elements:
+        tags = place.get("tags", {})
+        name = tags.get("name") or tags.get("name:ar") or tags.get("name:en") or "Mosque / مسجد"
+        
+        lat_val = place.get("lat") or place.get("center", {}).get("lat")
+        lng_val = place.get("lon") or place.get("center", {}).get("lon")
+        
+        street = tags.get("addr:street", "")
+        city = tags.get("addr:city", "")
+        if street and city:
+            address = f"{street}, {city}"
+        elif street:
+            address = street
+        elif city:
+            address = city
+        else:
+            address = ""
+            
+        if lat_val and lng_val:
+            results.append(
+                MosqueResult(
+                    name=name,
+                    address=address,
+                    lat=lat_val,
+                    lng=lng_val,
+                    rating=None,
+                )
             )
-        )
-
+            
     return results
 
 
@@ -134,36 +146,29 @@ async def reverse_geocode(
     lat: float = Query(...),
     lng: float = Query(...),
 ):
-    """Convert coordinates to a human-readable city + country."""
-    if not GOOGLE_MAPS_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="GOOGLE_MAPS_API_KEY is not configured on the server.",
-        )
-
-    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    """Convert coordinates to a human-readable city + country using Nominatim."""
+    url = "https://nominatim.openstreetmap.org/reverse"
     params = {
-        "latlng": f"{lat},{lng}",
-        "result_type": "locality|country",
-        "key": GOOGLE_MAPS_API_KEY,
+        "lat": lat,
+        "lon": lng,
+        "format": "json",
+        "addressdetails": 1,
+    }
+    headers = {
+        "User-Agent": "NoorAthkarApp/1.0 (contact@noorathkar.com)"
     }
 
-    resp = await http_client.get(url, params=params)
+    resp = await http_client.get(url, params=params, headers=headers)
+    
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Nominatim API error: {resp.status_code}")
+        
     data = resp.json()
-
-    city = ""
-    country = ""
-    formatted = ""
-
-    for result in data.get("results", []):
-        for comp in result.get("address_components", []):
-            types = comp.get("types", [])
-            if "locality" in types:
-                city = comp["long_name"]
-            if "country" in types:
-                country = comp["long_name"]
-        if not formatted:
-            formatted = result.get("formatted_address", "")
+    address = data.get("address", {})
+    
+    city = address.get("city") or address.get("town") or address.get("village") or address.get("suburb") or ""
+    country = address.get("country", "")
+    formatted = data.get("display_name", "")
 
     if not city and not country:
         raise HTTPException(status_code=404, detail="Location not found")
