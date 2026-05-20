@@ -14,6 +14,7 @@ class HiveService {
   static const String favoritesBox = 'athkar_favorites';
   static const String tasbeehBox = 'tasbeeh_history';
   static const String cacheBox = 'app_cache';
+  static const String athkarProgressBox = 'athkar_progress';
 
   /// Call once at app startup (before runApp).
   static Future<void> init() async {
@@ -23,6 +24,7 @@ class HiveService {
     await Hive.openBox(favoritesBox);
     await Hive.openBox(tasbeehBox);
     await Hive.openBox(cacheBox);
+    await Hive.openBox(athkarProgressBox);
   }
 
   // ═════════════════════════════════════════════════════════════
@@ -138,5 +140,24 @@ class HiveService {
   static dynamic getCachedValue(String key) {
     final box = Hive.box(cacheBox);
     return box.get(key);
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // Athkar Progress
+  // ═════════════════════════════════════════════════════════════
+
+  static Future<void> saveDhikrProgress(String id, int remaining) async {
+    final box = Hive.box(athkarProgressBox);
+    await box.put(id, remaining);
+  }
+
+  static int? getDhikrProgress(String id) {
+    final box = Hive.box(athkarProgressBox);
+    return box.get(id) as int?;
+  }
+
+  static Future<void> resetCategoryProgress(List<String> ids) async {
+    final box = Hive.box(athkarProgressBox);
+    await box.deleteAll(ids);
   }
 }
