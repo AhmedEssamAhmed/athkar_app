@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../modules/notifications_module.dart';
+import 'package:intl/intl.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -23,7 +24,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   void _toggle(int index) {
     setState(() {
-      _prefs[index] = _prefs[index].copyWith(isEnabled: !_prefs[index].isEnabled);
+      _prefs[index] =
+          _prefs[index].copyWith(isEnabled: !_prefs[index].isEnabled);
     });
   }
 
@@ -33,12 +35,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
     final cs = Theme.of(context).colorScheme;
 
     // Group by type
-    final prayers = _prefs.where((p) => p.type == NotificationType.prayerAlert).toList();
-    final reminders = _prefs.where((p) => p.type == NotificationType.reminder).toList();
-    final daily = _prefs.where((p) => p.type == NotificationType.daily).toList();
+    final prayers =
+        _prefs.where((p) => p.type == NotificationType.prayerAlert).toList();
+    final reminders =
+        _prefs.where((p) => p.type == NotificationType.reminder).toList();
+    final daily =
+        _prefs.where((p) => p.type == NotificationType.daily).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(isAr ? 'التذكيرات والإشعارات' : 'Reminders & Notifications')),
+      appBar: AppBar(
+          title: Text(
+              isAr ? 'التذكيرات والإشعارات' : 'Reminders & Notifications')),
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.marginMobile),
         children: [
@@ -76,7 +83,21 @@ class _ReminderTile extends StatelessWidget {
   final NotificationPreference pref;
   final bool isAr;
   final VoidCallback onToggle;
-  const _ReminderTile({required this.pref, required this.isAr, required this.onToggle});
+
+  const _ReminderTile({
+    required this.pref,
+    required this.isAr,
+    required this.onToggle,
+  });
+
+  String _formatReminderTime(String value) {
+    try {
+      final parsed = DateFormat('HH:mm').parse(value);
+      return DateFormat.jm().format(parsed);
+    } catch (_) {
+      return value;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,11 +112,17 @@ class _ReminderTile extends StatelessWidget {
       ),
       child: Row(children: [
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(isAr ? pref.titleAr : pref.titleEn, style: AppTypography.bodyLarge),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(isAr ? pref.titleAr : pref.titleEn,
+                style: AppTypography.bodyLarge),
             if (pref.scheduledTime != null)
-              Text(pref.scheduledTime!,
-                  style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
+              Text(
+                _formatReminderTime(pref.scheduledTime!),
+                style: AppTypography.labelMedium.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
           ]),
         ),
         Switch.adaptive(

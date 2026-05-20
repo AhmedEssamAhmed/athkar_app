@@ -12,6 +12,9 @@ import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
 
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+
 /// Dashboard screen — the home screen of Noor Athkar.
 ///
 /// Matches the Stitch "Home Dashboard" design:
@@ -19,8 +22,101 @@ import '../reminders/reminders_screen.dart';
 /// - Prayer time cards with current-prayer highlight
 /// - Quick-access grid for app features
 /// - Greeting based on time of day
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  double _latitude = PrayerData.defaultLatitude;
+  double _longitude = PrayerData.defaultLongitude;
+  String _locationName = PrayerData.defaultLocationName;
+  bool _isLoadingLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    try {
+      final position = await _determinePosition();
+
+      String locationName = '${position.latitude.toStringAsFixed(3)}, '
+          '${position.longitude.toStringAsFixed(3)}';
+
+      try {
+        final places = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+
+        if (places.isNotEmpty) {
+          final place = places.first;
+          final city = place.locality?.isNotEmpty == true
+              ? place.locality
+              : place.administrativeArea;
+          final country = place.country;
+
+          locationName = [
+            if (city != null && city.isNotEmpty) city,
+            if (country != null && country.isNotEmpty) country,
+          ].join(', ');
+        }
+      } catch (_) {
+        // If reverse geocoding fails, keep showing coordinates.
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        _locationName = locationName;
+        _isLoadingLocation = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _latitude = PrayerData.defaultLatitude;
+        _longitude = PrayerData.defaultLongitude;
+        _locationName = PrayerData.defaultLocationName;
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  Future<Position> _determinePosition() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    var permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permission denied.');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Location permission permanently denied.');
+    }
+
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +125,10 @@ class DashboardScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final hijri = PrayerData.todayHijri();
-    final prayers = PrayerData.todayPrayers();
+    final prayers = PrayerData.todayPrayers(
+      latitude: _latitude,
+      longitude: _longitude,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -43,7 +142,12 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: AppTheme.spaceMd),
 
               // ── Greeting & Hijri date ─────────────────────
-              _GreetingHeader(isArabic: isAr, hijri: hijri),
+              _GreetingHeader(
+                isArabic: isAr,
+                hijri: hijri,
+                locationName: _locationName,
+                isLoadingLocation: _isLoadingLocation,
+              ),
 
               const SizedBox(height: AppTheme.spaceMd),
 
@@ -86,8 +190,15 @@ class DashboardScreen extends StatelessWidget {
 class _GreetingHeader extends StatelessWidget {
   final bool isArabic;
   final HijriDate hijri;
+  final String locationName;
+  final bool isLoadingLocation;
 
-  const _GreetingHeader({required this.isArabic, required this.hijri});
+  const _GreetingHeader({
+    required this.isArabic,
+    required this.hijri,
+    required this.locationName,
+    required this.isLoadingLocation,
+  });
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -121,6 +232,31 @@ class _GreetingHeader extends StatelessWidget {
           style: AppTypography.bodyMedium.copyWith(
             color: cs.onSurfaceVariant,
           ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              size: 16,
+              color: cs.primary,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                isLoadingLocation
+                    ? (isArabic
+                        ? 'جاري تحديد الموقع...'
+                        : 'Detecting location...')
+                    : locationName,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -373,7 +509,7 @@ class _QuickItem {
   final String labelAr;
   final Color color;
   final Widget? screen; // push this screen
-  final int? tabIndex;  // or switch to this tab
+  final int? tabIndex; // or switch to this tab
 
   const _QuickItem({
     required this.icon,
@@ -403,7 +539,8 @@ class _QuickAccessTile extends StatelessWidget {
           if (item.tabIndex != null) {
             AppShell.navigateTo(context, item.tabIndex!);
           } else if (item.screen != null) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => item.screen!));
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => item.screen!));
           }
         },
         child: Container(
