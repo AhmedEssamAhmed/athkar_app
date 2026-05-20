@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../modules/athkar_module.dart';
+import '../../core/storage/hive_service.dart';
 
 /// Athkar Categories screen — lists all athkar categories as tappable cards.
 class AthkarCategoriesScreen extends StatelessWidget {
@@ -151,13 +152,28 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
   void initState() {
     super.initState();
     _athkar = AthkarData.sampleMorningAthkar(); // Use sample for all for now
-    _remainingCounts = _athkar.map((d) => d.repeatCount).toList();
+    _remainingCounts = _athkar.map((d) {
+      final saved = HiveService.getDhikrProgress(d.id);
+      return saved ?? d.repeatCount;
+    }).toList();
   }
 
   void _onTapDhikr(int index) {
     if (_remainingCounts[index] > 0) {
-      setState(() => _remainingCounts[index]--);
+      setState(() {
+        _remainingCounts[index]--;
+        HiveService.saveDhikrProgress(_athkar[index].id, _remainingCounts[index]);
+      });
     }
+  }
+
+  void _resetAll() {
+    setState(() {
+      for (int i = 0; i < _athkar.length; i++) {
+        _remainingCounts[i] = _athkar[i].repeatCount;
+      }
+    });
+    HiveService.resetCategoryProgress(_athkar.map((d) => d.id).toList());
   }
 
   @override
@@ -170,6 +186,13 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
         title: Text(
           isAr ? widget.category.arabicTitle : widget.category.englishTitle,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: isAr ? 'إعادة ضبط' : 'Reset',
+            onPressed: _resetAll,
+          ),
+        ],
       ),
       body: PageView.builder(
         scrollDirection: Axis.vertical,
