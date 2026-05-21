@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
@@ -30,7 +29,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
   @override
   Widget build(BuildContext context) {
     final isAr = context.watch<SettingsProvider>().isArabic;
-    final cs = Theme.of(context).colorScheme;
 
     // Group by type
     final prayers = _prefs.where((p) => p.type == NotificationType.prayerAlert).toList();
@@ -101,7 +99,7 @@ class _ReminderTile extends StatelessWidget {
         Switch.adaptive(
           value: pref.isEnabled,
           onChanged: (_) => onToggle(),
-          activeColor: cs.primary,
+          activeTrackColor: cs.primary,
         ),
       ]),
     );
