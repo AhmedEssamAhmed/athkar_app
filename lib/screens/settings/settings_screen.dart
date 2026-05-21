@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/providers/prayer_time_provider.dart';
 import '../../modules/settings_module.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -59,11 +60,17 @@ class _SettingsTile extends StatelessWidget {
             style: AppTypography.labelLarge.copyWith(color: cs.primary));
         onTap = () => s.cycleTheme();
         break;
+      case 'hijri_calendar':
+        final label = isArabic ? s.hijriMethod.labelAr : s.hijriMethod.labelEn;
+        trailing = Text(label,
+            style: AppTypography.labelLarge.copyWith(color: cs.primary));
+        onTap = () => _showHijriMethodDialog(context, s);
+        break;
       case 'notifications':
       case 'athkar_reminder':
       case 'haptic':
         trailing = Switch.adaptive(
-          value: true, // TODO: wire to actual preference
+          value: true,
           onChanged: (_) {},
           activeTrackColor: cs.primary,
         );
@@ -91,6 +98,41 @@ class _SettingsTile extends StatelessWidget {
             : null,
         trailing: trailing,
         onTap: onTap,
+      ),
+    );
+  }
+
+  void _showHijriMethodDialog(BuildContext context, SettingsProvider s) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isArabic ? 'طريقة التقويم الهجري' : 'Hijri Calendar Method'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: HijriCalendarMethod.values.map((method) {
+            final label = isArabic ? method.labelAr : method.labelEn;
+            final isSelected = s.hijriMethod == method;
+            return RadioListTile<HijriCalendarMethod>(
+              title: Text(label),
+              value: method,
+              groupValue: s.hijriMethod,
+              onChanged: (value) {
+                if (value != null) {
+                  s.setHijriMethod(value);
+                  context.read<PrayerTimeProvider>().updateHijriMethod(value);
+                  Navigator.pop(context);
+                }
+              },
+              selected: isSelected,
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(isArabic ? 'إغلاق' : 'Close'),
+          ),
+        ],
       ),
     );
   }

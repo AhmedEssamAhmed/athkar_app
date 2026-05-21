@@ -4,10 +4,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/storage/hive_service.dart';
-
 import 'core/theme/app_theme.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/tasbeeh_provider.dart';
+import 'core/providers/prayer_time_provider.dart';
+import 'core/services/notification_service.dart';
 import 'screens/entry/splash_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/athkar/athkar_screen.dart';
@@ -22,16 +23,22 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize Hive offline storage
   await HiveService.init();
 
   final settingsProvider = SettingsProvider();
   await settingsProvider.init();
 
+  final prayerTimeProvider = PrayerTimeProvider();
+  await prayerTimeProvider.init();
+
+  final notificationService = NotificationService();
+  await notificationService.init();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: settingsProvider),
+        ChangeNotifierProvider.value(value: prayerTimeProvider),
         ChangeNotifierProvider(create: (_) => TasbeehProvider()),
       ],
       child: const NoorAthkarApp(),
@@ -63,13 +70,11 @@ class NoorAthkarApp extends StatelessWidget {
   }
 }
 
-/// Main navigation shell with 5-tab bottom nav.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
   @override
   State<AppShell> createState() => AppShellState();
 
-  /// Navigate to a specific tab by index from external screens.
   static void navigateTo(BuildContext context, int index) {
     final state = context.findAncestorStateOfType<AppShellState>();
     state?.switchTab(index);

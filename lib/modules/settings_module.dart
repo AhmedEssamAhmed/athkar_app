@@ -21,7 +21,6 @@ class SettingsItem {
 
 enum SettingsType { toggle, selector, action, navigation }
 
-/// Predefined settings items matching the Stitch "App Settings" screen.
 class SettingsData {
   static const List<SettingsItem> items = [
     SettingsItem(
@@ -38,6 +37,14 @@ class SettingsData {
       titleAr: 'المظهر',
       subtitleEn: 'Light, Dark, or System',
       subtitleAr: 'فاتح، داكن، أو النظام',
+      type: SettingsType.selector,
+    ),
+    SettingsItem(
+      key: 'hijri_calendar',
+      titleEn: 'Hijri Calendar Method',
+      titleAr: 'طريقة التقويم الهجري',
+      subtitleEn: 'Umm al-Qura, Egyptian, or Islamic',
+      subtitleAr: 'أم القرى، المصري، أو الإسلامي',
       type: SettingsType.selector,
     ),
     SettingsItem(
