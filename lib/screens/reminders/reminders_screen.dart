@@ -7,6 +7,7 @@ import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
 import '../../core/services/notification_service.dart';
 import '../../modules/notifications_module.dart';
+import 'package:intl/intl.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
