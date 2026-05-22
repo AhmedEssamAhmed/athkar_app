@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:noor_athkar/modules/prayer_module.dart';
@@ -32,7 +31,10 @@ void main() {
     });
 
     test('PrayerData returns prayers', () {
-      final prayers = PrayerData.todayPrayers();
+      final prayers = PrayerData.todayPrayers(
+        latitude: PrayerData.defaultLatitude,
+        longitude: PrayerData.defaultLongitude,
+      );
       expect(prayers.length, 6);
       expect(prayers.first.name, 'Fajr');
       expect(prayers.last.name, 'Isha');

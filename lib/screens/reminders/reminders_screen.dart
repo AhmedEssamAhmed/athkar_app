@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -490,7 +491,7 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
                 labelText: isAr ? 'العنوان' : 'Title',
                 border: const OutlineInputBorder(),
               ),
-              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
             ),
             const SizedBox(height: 16),
             Row(
