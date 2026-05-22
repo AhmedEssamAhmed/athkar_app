@@ -22,8 +22,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  double _latitude = PrayerData.defaultLatitude;
-  double _longitude = PrayerData.defaultLongitude;
   String _locationName = PrayerData.defaultLocationName;
   bool _isLoadingLocation = true;
 
@@ -66,8 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
 
       setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
         _locationName = locationName;
         _isLoadingLocation = false;
       });
@@ -75,8 +71,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
 
       setState(() {
-        _latitude = PrayerData.defaultLatitude;
-        _longitude = PrayerData.defaultLongitude;
         _locationName = PrayerData.defaultLocationName;
         _isLoadingLocation = false;
       });
