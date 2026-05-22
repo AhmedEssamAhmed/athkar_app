@@ -24,12 +24,14 @@ class HijriDate {
   final String monthName;
   final String monthNameAr;
   final int year;
+  final int monthNumber;
 
   const HijriDate({
     required this.day,
     required this.monthName,
     required this.monthNameAr,
     required this.year,
+    this.monthNumber = 1,
   });
 
   String get formatted => '$day $monthName $year AH';

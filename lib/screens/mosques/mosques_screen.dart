@@ -1,12 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/services/mosque_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class MosquesScreen extends StatelessWidget {
+class MosquesScreen extends StatefulWidget {
   const MosquesScreen({super.key});
+
+  @override
+  State<MosquesScreen> createState() => _MosquesScreenState();
+}
+
+class _MosquesScreenState extends State<MosquesScreen> {
+  final MosqueService _mosqueService = MosqueService();
+  List<Mosque>? _mosques;
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMosques();
+  }
+
+  Future<void> _fetchMosques() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Location services are disabled. Please enable GPS.');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied.');
+      } 
+
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final lat = position.latitude;
+      final lng = position.longitude;
+
+      final data = await _mosqueService.fetchNearby(lat: lat, lng: lng);
+      
+      for (var m in data) {
+        m.distance = Geolocator.distanceBetween(lat, lng, m.lat, m.lng);
+      }
+      data.sort((a, b) => a.distance.compareTo(b.distance));
+
+      setState(() {
+        _mosques = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +79,15 @@ class MosquesScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isAr ? 'المساجد القريبة' : 'Nearby Mosques')),
+      appBar: AppBar(
+        title: Text(isAr ? 'المساجد القريبة' : 'Nearby Mosques'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _isLoading ? null : _fetchMosques,
+          )
+        ],
+      ),
       body: Column(children: [
         // Map placeholder
         Container(
@@ -32,7 +105,7 @@ class MosquesScreen extends StatelessWidget {
                   style: AppTypography.bodyMedium.copyWith(color: cs.outline)),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: _fetchMosques,
                 icon: const Icon(Icons.my_location_rounded, size: 18),
                 label: Text(isAr ? 'تحديد موقعي' : 'Find My Location'),
               ),
@@ -40,10 +113,26 @@ class MosquesScreen extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile),
-            children: _mosques.map((m) => _MosqueTile(m: m, isAr: isAr)).toList(),
-          ),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        isAr ? 'حدث خطأ أثناء جلب البيانات:\n$_error' : 'Error fetching data:\n$_error',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: cs.error),
+                      ),
+                    ),
+                  )
+                : _mosques == null || _mosques!.isEmpty
+                    ? Center(child: Text(isAr ? 'لم يتم العثور على مساجد قريبة.' : 'No nearby mosques found.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile),
+                        itemCount: _mosques!.length,
+                        itemBuilder: (context, index) => _MosqueTile(m: _mosques![index], isAr: isAr),
+                      ),
         ),
       ]),
     );
@@ -51,9 +140,26 @@ class MosquesScreen extends StatelessWidget {
 }
 
 class _MosqueTile extends StatelessWidget {
-  final Map<String, String> m;
+  final Mosque m;
   final bool isAr;
   const _MosqueTile({required this.m, required this.isAr});
+
+  String _formatDistance(double meters, bool isAr) {
+    if (meters < 1000) {
+      return '${meters.toInt()} ${isAr ? "متر" : "m"}';
+    } else {
+      return '${(meters / 1000).toStringAsFixed(1)} ${isAr ? "كم" : "km"}';
+    }
+  }
+
+  Future<void> _launchMaps(Mosque m) async {
+    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${m.lat},${m.lng}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      await launchUrl(url);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,30 +184,36 @@ class _MosqueTile extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(isAr ? m['nameAr']! : m['name']!,
+            Text(m.name.isNotEmpty ? m.name : (isAr ? 'مسجد غير مسمى' : 'Unnamed Mosque'),
                 style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Row(children: [
               Icon(Icons.location_on_rounded, size: 14, color: cs.outline),
               const SizedBox(width: 4),
-              Text(m['distance']!,
-                  style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
+              Expanded(
+                child: Text(
+                  m.address.isNotEmpty ? m.address : (isAr ? 'موقع المسجد' : 'Mosque location'),
+                  style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _formatDistance(m.distance, isAr),
+                style: AppTypography.labelMedium.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ]),
           ]),
         ),
         IconButton(
           icon: Icon(Icons.directions_rounded, color: cs.primary),
-          onPressed: () {},
+          onPressed: () => _launchMaps(m),
         ),
       ]),
     );
   }
 }
-
-const _mosques = [
-  {'name': 'Al-Noor Grand Mosque', 'nameAr': 'مسجد النور الكبير', 'distance': '0.3 km'},
-  {'name': 'Omar Ibn Al-Khattab Mosque', 'nameAr': 'مسجد عمر بن الخطاب', 'distance': '0.8 km'},
-  {'name': 'Al-Taqwa Mosque', 'nameAr': 'مسجد التقوى', 'distance': '1.2 km'},
-  {'name': 'Bilal Mosque', 'nameAr': 'مسجد بلال', 'distance': '1.5 km'},
-  {'name': 'Al-Rahma Mosque', 'nameAr': 'مسجد الرحمة', 'distance': '2.1 km'},
-];

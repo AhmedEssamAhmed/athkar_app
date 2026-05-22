@@ -1,30 +1,60 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:noor_athkar/main.dart';
+import 'package:noor_athkar/modules/prayer_module.dart';
+import 'package:noor_athkar/modules/notifications_module.dart';
+import 'package:noor_athkar/core/services/notification_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('Prayer Module Tests', () {
+    test('PrayerTime creates correctly', () {
+      const prayer = PrayerTime(
+        name: 'Fajr',
+        nameAr: 'الفجر',
+        time: '04:30',
+      );
+      expect(prayer.name, 'Fajr');
+      expect(prayer.nameAr, 'الفجر');
+      expect(prayer.time, '04:30');
+      expect(prayer.isCurrent, false);
+      expect(prayer.isPassed, false);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('HijriDate formats correctly', () {
+      const hijri = HijriDate(
+        day: 15,
+        monthName: 'Ramadan',
+        monthNameAr: 'رمضان',
+        year: 1447,
+      );
+      expect(hijri.formatted, '15 Ramadan 1447 AH');
+      expect(hijri.formattedAr, '15 رمضان 1447 هـ');
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('PrayerData returns prayers', () {
+      final prayers = PrayerData.todayPrayers();
+      expect(prayers.length, 6);
+      expect(prayers.first.name, 'Fajr');
+      expect(prayers.last.name, 'Isha');
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('Notifications Module Tests', () {
+    test('NotificationPreference creates correctly', () {
+      const pref = NotificationPreference(
+        id: 'fajr_alert',
+        titleEn: 'Fajr Prayer',
+        titleAr: 'صلاة الفجر',
+        isEnabled: true,
+        category: NotificationCategory.prayer,
+      );
+      expect(pref.id, 'fajr_alert');
+      expect(pref.isEnabled, true);
+    });
+
+    test('NotificationData returns defaults', () {
+      final defaults = NotificationData.defaults();
+      expect(defaults.isNotEmpty, true);
+    });
   });
 }

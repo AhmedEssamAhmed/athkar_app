@@ -5,24 +5,14 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/providers/prayer_time_provider.dart';
 import '../../modules/prayer_module.dart';
 import '../../main.dart';
-import '../athkar/athkar_screen.dart';
 import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
 
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-
-/// Dashboard screen — the home screen of Noor Athkar.
-///
-/// Matches the Stitch "Home Dashboard" design:
-/// - Hijri date header
-/// - Prayer time cards with current-prayer highlight
-/// - Quick-access grid for app features
-/// - Greeting based on time of day
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
@@ -121,84 +111,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final prayerProvider = context.watch<PrayerTimeProvider>();
     final isAr = settings.isArabic;
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final hijri = PrayerData.todayHijri();
-    final prayers = PrayerData.todayPrayers(
-      latitude: _latitude,
-      longitude: _longitude,
-    );
+    final hijri = prayerProvider.hijriDate;
+    final prayers = prayerProvider.prayers;
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.marginMobile,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppTheme.spaceMd),
+        child: prayerProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.marginMobile,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Greeting & Hijri date ─────────────────────
-              _GreetingHeader(
-                isArabic: isAr,
-                hijri: hijri,
-                locationName: _locationName,
-                isLoadingLocation: _isLoadingLocation,
+                    _GreetingHeader(isArabic: isAr, hijri: hijri),
+
+                    const SizedBox(height: AppTheme.spaceMd),
+
+                    _CurrentPrayerCard(prayers: prayers, isArabic: isAr),
+
+                    const SizedBox(height: AppTheme.spaceMd),
+
+                    Text(
+                      isAr ? 'مواقيت الصلاة' : 'Prayer Times',
+                      style: tt.titleLarge,
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    _PrayerTimesList(prayers: prayers, isArabic: isAr),
+
+                    const SizedBox(height: AppTheme.spaceMd),
+
+                    _SpecialTimesCard(
+                      isArabic: isAr,
+                      midnight: prayerProvider.midnightTime,
+                      lastThird: prayerProvider.lastThirdTime,
+                      duha: prayerProvider.duhaTime,
+                    ),
+
+                    const SizedBox(height: AppTheme.spaceMd),
+
+                    _NotificationTimingsGrid(
+                      isArabic: isAr,
+                      morningAthkar: prayerProvider.morningAthkarTime,
+                      eveningAthkar: prayerProvider.eveningAthkarTime,
+                      fourthSixth: prayerProvider.fourthSixthTime,
+                    ),
+
+                    const SizedBox(height: AppTheme.spaceLg),
+
+                    Text(
+                      isAr ? 'الوصول السريع' : 'Quick Access',
+                      style: tt.titleLarge,
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    _QuickAccessGrid(isArabic: isAr),
+
+                    const SizedBox(height: AppTheme.spaceLg),
+                  ],
+                ),
               ),
-
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // ── Current prayer hero card ──────────────────
-              _CurrentPrayerCard(prayers: prayers, isArabic: isAr),
-
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // ── All prayer times ──────────────────────────
-              Text(
-                isAr ? 'مواقيت الصلاة' : 'Prayer Times',
-                style: tt.titleLarge,
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              _PrayerTimesList(prayers: prayers, isArabic: isAr),
-
-              const SizedBox(height: AppTheme.spaceLg),
-
-              // ── Quick access grid ─────────────────────────
-              Text(
-                isAr ? 'الوصول السريع' : 'Quick Access',
-                style: tt.titleLarge,
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              _QuickAccessGrid(isArabic: isAr),
-
-              const SizedBox(height: AppTheme.spaceLg),
-            ],
-          ),
-        ),
       ),
     );
   }
 }
 
-// ════════════════════════════════════════════════════════════════════
-// Private widgets
-// ════════════════════════════════════════════════════════════════════
-
 class _GreetingHeader extends StatelessWidget {
   final bool isArabic;
-  final HijriDate hijri;
-  final String locationName;
-  final bool isLoadingLocation;
+  final dynamic hijri;
 
-  const _GreetingHeader({
-    required this.isArabic,
-    required this.hijri,
-    required this.locationName,
-    required this.isLoadingLocation,
-  });
+  const _GreetingHeader({required this.isArabic, required this.hijri});
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -272,12 +259,16 @@ class _CurrentPrayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    if (prayers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final current = prayers.firstWhere(
       (p) => p.isCurrent,
       orElse: () => prayers.first,
     );
 
-    // Find next prayer
     final currentIdx = prayers.indexOf(current);
     final next = currentIdx + 1 < prayers.length
         ? prayers[currentIdx + 1]
@@ -393,7 +384,6 @@ class _PrayerTimesList extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // Status dot
                   Container(
                     width: 8,
                     height: 8,
@@ -427,6 +417,108 @@ class _PrayerTimesList extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _SpecialTimesCard extends StatelessWidget {
+  final bool isArabic;
+  final String midnight;
+  final String lastThird;
+  final String duha;
+
+  const _SpecialTimesCard({
+    required this.isArabic,
+    required this.midnight,
+    required this.lastThird,
+    required this.duha,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    final items = [
+      {
+        'icon': Icons.nights_stay_rounded,
+        'titleEn': 'Midnight',
+        'titleAr': 'منتصف الليل',
+        'time': midnight,
+      },
+      {
+        'icon': Icons.star_rounded,
+        'titleEn': 'Last Third',
+        'titleAr': 'الثلث الأخير',
+        'time': lastThird,
+      },
+      {
+        'icon': Icons.wb_sunny_rounded,
+        'titleEn': 'Duha',
+        'titleAr': 'الضحى',
+        'time': duha,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isArabic ? 'أوقات مهمة' : 'Important Times',
+          style: tt.titleLarge,
+        ),
+        const SizedBox(height: AppTheme.spaceSm),
+        Row(
+          children: items.map((item) {
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: item == items.last ? 0 : 6,
+                  left: item == items.first ? 0 : 6,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  border: Border.all(
+                    color: cs.outlineVariant.withAlpha(80),
+                    width: 0.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      item['icon'] as IconData,
+                      color: cs.primary,
+                      size: 22,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item['time'] as String,
+                      style: AppTypography.titleLarge.copyWith(
+                        color: cs.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isArabic ? item['titleAr'] as String : item['titleEn'] as String,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }
@@ -508,8 +600,8 @@ class _QuickItem {
   final String labelEn;
   final String labelAr;
   final Color color;
-  final Widget? screen; // push this screen
-  final int? tabIndex; // or switch to this tab
+  final Widget? screen;
+  final int? tabIndex;
 
   const _QuickItem({
     required this.icon,
@@ -580,6 +672,108 @@ class _QuickAccessTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NotificationTimingsGrid extends StatelessWidget {
+  final bool isArabic;
+  final String morningAthkar;
+  final String eveningAthkar;
+  final String fourthSixth;
+
+  const _NotificationTimingsGrid({
+    required this.isArabic,
+    required this.morningAthkar,
+    required this.eveningAthkar,
+    required this.fourthSixth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    final items = [
+      {
+        'icon': Icons.wb_sunny_outlined,
+        'titleEn': 'Morning Athkar',
+        'titleAr': 'أذكار الصباح',
+        'time': morningAthkar,
+      },
+      {
+        'icon': Icons.nightlight_round,
+        'titleEn': 'Evening Athkar',
+        'titleAr': 'أذكار المساء',
+        'time': eveningAthkar,
+      },
+      {
+        'icon': Icons.star_border,
+        'titleEn': '4th Sixth',
+        'titleAr': 'السدس الرابع',
+        'time': fourthSixth,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isArabic ? 'مواقيت الإشعارات' : 'Notification Timings',
+          style: tt.titleLarge,
+        ),
+        const SizedBox(height: AppTheme.spaceSm),
+        Row(
+          children: items.map((item) {
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: item == items.last ? 0 : 6,
+                  left: item == items.first ? 0 : 6,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  border: Border.all(
+                    color: cs.outlineVariant.withAlpha(80),
+                    width: 0.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      item['icon'] as IconData,
+                      color: cs.tertiary,
+                      size: 22,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item['time'] as String,
+                      style: AppTypography.titleLarge.copyWith(
+                        color: cs.tertiary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isArabic ? item['titleAr'] as String : item['titleEn'] as String,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }
