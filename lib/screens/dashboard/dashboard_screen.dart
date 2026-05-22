@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -12,7 +14,7 @@ import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
@@ -35,29 +37,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final position = await _determinePosition();
 
-      String locationName = '${position.latitude.toStringAsFixed(3)}, '
+      // Start with coordinates as fallback
+      String locationName =
+          '${position.latitude.toStringAsFixed(3)}, '
           '${position.longitude.toStringAsFixed(3)}';
 
+      // Try reverse geocoding for a friendly city name
       try {
         final places = await placemarkFromCoordinates(
           position.latitude,
           position.longitude,
         );
-
         if (places.isNotEmpty) {
           final place = places.first;
           final city = place.locality?.isNotEmpty == true
               ? place.locality
               : place.administrativeArea;
           final country = place.country;
-
           locationName = [
             if (city != null && city.isNotEmpty) city,
             if (country != null && country.isNotEmpty) country,
           ].join(', ');
         }
       } catch (_) {
-        // If reverse geocoding fails, keep showing coordinates.
+        // Keep coordinates if reverse geocoding fails
       }
 
       if (!mounted) return;
@@ -130,7 +133,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    _GreetingHeader(isArabic: isAr, hijri: hijri),
+                    _GreetingHeader(
+                      isArabic: isAr,
+                      hijri: hijri,
+                      isLoadingLocation: _isLoadingLocation,
+                      locationName: _locationName,
+                    ),
 
                     const SizedBox(height: AppTheme.spaceMd),
 
@@ -184,8 +192,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _GreetingHeader extends StatelessWidget {
   final bool isArabic;
   final dynamic hijri;
+  final bool isLoadingLocation;
+  final String locationName;
 
-  const _GreetingHeader({required this.isArabic, required this.hijri});
+  const _GreetingHeader({
+    required this.isArabic,
+    required this.hijri,
+    required this.isLoadingLocation,
+    required this.locationName,
+  });
 
   String _greeting() {
     final hour = DateTime.now().hour;

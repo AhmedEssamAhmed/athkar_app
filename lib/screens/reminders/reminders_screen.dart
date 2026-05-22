@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -7,7 +8,6 @@ import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
 import '../../core/services/notification_service.dart';
 import '../../modules/notifications_module.dart';
-import 'package:intl/intl.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -490,7 +490,7 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
                 labelText: isAr ? 'العنوان' : 'Title',
                 border: const OutlineInputBorder(),
               ),
-              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
             ),
             const SizedBox(height: 16),
             Row(
