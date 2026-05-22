@@ -34,6 +34,7 @@ class ScheduledNotification {
   final int? dayOfMonth;
   final int? minutesAfterPrayer;
   final String? basePrayer;
+  final bool? isBeforePrayer;
 
   const ScheduledNotification({
     required this.id,
@@ -49,6 +50,7 @@ class ScheduledNotification {
     this.dayOfMonth,
     this.minutesAfterPrayer,
     this.basePrayer,
+    this.isBeforePrayer,
   });
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +67,7 @@ class ScheduledNotification {
         'dayOfMonth': dayOfMonth,
         'minutesAfterPrayer': minutesAfterPrayer,
         'basePrayer': basePrayer,
+        'isBeforePrayer': isBeforePrayer,
       };
 
   factory ScheduledNotification.fromJson(Map<String, dynamic> json) {
@@ -84,6 +87,7 @@ class ScheduledNotification {
       dayOfMonth: json['dayOfMonth'] as int?,
       minutesAfterPrayer: json['minutesAfterPrayer'] as int?,
       basePrayer: json['basePrayer'] as String?,
+      isBeforePrayer: json['isBeforePrayer'] as bool?,
     );
   }
 }
@@ -136,18 +140,29 @@ class NotificationService {
     required String titleAr,
     required String bodyEn,
     required String bodyAr,
+    NotificationCategory? category,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isAr = prefs.getString('locale') == 'ar';
+    final title = isAr ? titleAr : titleEn;
+    final body = isAr ? bodyAr : bodyEn;
+    final isPrayer = category == NotificationCategory.prayer;
     await _plugin.show(
       99999,
-      titleEn,
-      bodyEn,
+      title,
+      body,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'athkar_notifications',
-          'Athkar Notifications',
-          channelDescription: 'Notifications for prayers and athkar',
+          isPrayer ? 'prayer_notifications' : 'athkar_notifications',
+          isPrayer ? 'Prayer Notifications' : 'Athkar Notifications',
+          channelDescription: isPrayer
+              ? 'Prayer time notifications with Athan sound'
+              : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
+          sound: isPrayer
+              ? const RawResourceAndroidNotificationSound('athan')
+              : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -222,12 +237,12 @@ class NotificationService {
     Map<String, DateTime> prayerTimes,
   ) async {
     final prayerNames = {
-      'fajr': ('Fajr Prayer', 'صلاة الفجر', 'It is time for Fajr prayer.', 'حان وقت صلاة الفجر.'),
-      'sunrise': ('Sunrise', 'الشروق', 'The sun has risen.', 'لقد طلعت الشمس.'),
-      'dhuhr': ('Dhuhr Prayer', 'صلاة الظهر', 'It is time for Dhuhr prayer.', 'حان وقت صلاة الظهر.'),
-      'asr': ('Asr Prayer', 'صلاة العصر', 'It is time for Asr prayer.', 'حان وقت صلاة العصر.'),
-      'maghrib': ('Maghrib Prayer', 'صلاة المغرب', 'It is time for Maghrib prayer.', 'حان وقت صلاة المغرب.'),
-      'isha': ('Isha Prayer', 'صلاة العشاء', 'It is time for Isha prayer.', 'حان وقت صلاة العشاء.'),
+      'fajr': ('Fajr Prayer', 'صلاة الفجر', '', ''),
+      'sunrise': ('Sunrise', 'الشروق', '', ''),
+      'dhuhr': ('Dhuhr Prayer', 'صلاة الظهر', '', ''),
+      'asr': ('Asr Prayer', 'صلاة العصر', '', ''),
+      'maghrib': ('Maghrib Prayer', 'صلاة المغرب', '', ''),
+      'isha': ('Isha Prayer', 'صلاة العشاء', '', ''),
     };
 
     for (final entry in prayerTimes.entries) {
@@ -238,12 +253,11 @@ class NotificationService {
 
       await _scheduleDaily(
         id: _hashString('prayer_$name'),
-        titleEn: names.$1,
-        titleAr: names.$2,
-        bodyEn: names.$3,
-        bodyAr: names.$4,
+      titleEn: names.$1,
+      titleAr: names.$2,
         hour: time.hour,
         minute: time.minute,
+        useAthanSound: true,
       );
     }
   }
@@ -254,8 +268,6 @@ class NotificationService {
       id: _hashString('duha_prayer'),
       titleEn: 'Duha Prayer',
       titleAr: 'صلاة الضحى',
-      bodyEn: 'It is time for Duha prayer.',
-      bodyAr: 'حان وقت صلاة الضحى.',
       hour: duhaTime.hour,
       minute: duhaTime.minute,
     );
@@ -267,8 +279,6 @@ class NotificationService {
       id: _hashString('morning_athkar'),
       titleEn: 'Morning Athkar',
       titleAr: 'أذكار الصباح',
-      bodyEn: 'Time for morning athkar and remembrance.',
-      bodyAr: 'حان وقت أذكار الصباح والذكر.',
       hour: time.hour,
       minute: time.minute,
     );
@@ -280,8 +290,6 @@ class NotificationService {
       id: _hashString('evening_athkar'),
       titleEn: 'Evening Athkar',
       titleAr: 'أذكار المساء',
-      bodyEn: 'Time for evening athkar and remembrance.',
-      bodyAr: 'حان وقت أذكار المساء والذكر.',
       hour: time.hour,
       minute: time.minute,
     );
@@ -294,8 +302,6 @@ class NotificationService {
       id: _hashString('midnight'),
       titleEn: 'Midnight',
       titleAr: 'منتصف الليل',
-      bodyEn: 'It is midnight. A blessed time for prayer and remembrance.',
-      bodyAr: 'إنه منتصف الليل. وقت مبارك للصلاة والذكر.',
       hour: midnight.hour,
       minute: midnight.minute,
     );
@@ -308,8 +314,6 @@ class NotificationService {
       id: _hashString('last_third'),
       titleEn: 'Last Third of Night',
       titleAr: 'الثلث الأخير من الليل',
-      bodyEn: 'The last third of the night has begun. A time when Allah descends to the lowest heaven.',
-      bodyAr: 'بدأ الثلث الأخير من الليل. وقت ينزل الله فيه إلى السماء الدنيا.',
       hour: lastThird.hour,
       minute: lastThird.minute,
     );
@@ -322,14 +326,14 @@ class NotificationService {
       id: _hashString('fourth_sixth'),
       titleEn: 'Fourth Sixth of Night',
       titleAr: 'السدس الرابع من الليل',
-      bodyEn: 'The fourth sixth of the night. A blessed time for worship.',
-      bodyAr: 'السدس الرابع من الليل. وقت مبارك للعبادة.',
       hour: fourthSixth.hour,
       minute: fourthSixth.minute,
     );
   }
 
   Future<void> scheduleFastingMonThuReminders(DateTime maghribTime) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isAr = prefs.getString('locale') == 'ar';
     final now = DateTime.now();
     final today = now.weekday;
 
@@ -337,14 +341,14 @@ class NotificationService {
       final time = maghribTime.add(const Duration(minutes: 30));
       await _plugin.zonedSchedule(
         _hashString('fasting_monday'),
-        'Fast Tomorrow',
-        'صُم غداً',
+        isAr ? 'صُم غداً' : 'Fast Tomorrow',
+        '',
         tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute),
         NotificationDetails(
           android: AndroidNotificationDetails(
             'athkar_notifications',
             'Athkar Notifications',
-            channelDescription: 'Notifications for prayers and athkar',
+            channelDescription: 'General app notifications',
             importance: Importance.max,
             priority: Priority.high,
           ),
@@ -364,14 +368,14 @@ class NotificationService {
       final time = maghribTime.add(const Duration(minutes: 30));
       await _plugin.zonedSchedule(
         _hashString('fasting_thursday'),
-        'Fast Tomorrow',
-        'صُم غداً',
+        isAr ? 'صُم غداً' : 'Fast Tomorrow',
+        '',
         tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute),
         NotificationDetails(
           android: AndroidNotificationDetails(
             'athkar_notifications',
             'Athkar Notifications',
-            channelDescription: 'Notifications for prayers and athkar',
+            channelDescription: 'General app notifications',
             importance: Importance.max,
             priority: Priority.high,
           ),
@@ -395,8 +399,6 @@ class NotificationService {
         id: _hashString('white_days_reminder'),
         titleEn: 'White Days Fasting Tomorrow',
         titleAr: 'صيام الأيام البيض غداً',
-        bodyEn: 'Tomorrow begins the white days (13, 14, 15). Remember to fast.',
-        bodyAr: 'غداً تبدأ الأيام البيض (13، 14، 15). تذكر الصيام.',
         hour: time.hour,
         minute: time.minute,
       );
@@ -410,8 +412,6 @@ class NotificationService {
         id: _hashString('month_entrance'),
         titleEn: 'New Month Entrance Dua',
         titleAr: 'دعاء دخول الشهر الجديد',
-        bodyEn: 'A new Hijri month is approaching. Recite: "Allahumma ahillahu alayna bil-amni wal-iman"',
-        bodyAr: 'يقترب شهر هجري جديد. ادعُ: "اللهم أهله علينا بالأمن والإيمان"',
         hour: time.hour,
         minute: time.minute,
       );
@@ -423,8 +423,6 @@ class NotificationService {
       id: _hashString('surah_kahf'),
       titleEn: 'Read Surat Al-Kahf',
       titleAr: 'اقرأ سورة الكهف',
-      bodyEn: 'It is Friday. Remember to read Surat Al-Kahf today.',
-      bodyAr: 'اليوم الجمعة. تذكر قراءة سورة الكهف اليوم.',
       dayOfWeek: DateTime.friday,
       hour: 6,
       minute: 0,
@@ -435,17 +433,72 @@ class NotificationService {
     required String id,
     required String titleEn,
     required String titleAr,
-    required String bodyEn,
-    required String bodyAr,
     required int hour,
     required int minute,
-  }) {
-    return _scheduleDaily(
+    String? basePrayer,
+    int? minutesAfterPrayer,
+    bool? isBeforePrayer,
+  }) async {
+    final notification = ScheduledNotification(
+      id: id,
+      titleEn: titleEn,
+      titleAr: titleAr,
+      bodyEn: '',
+      bodyAr: '',
+      category: NotificationCategory.personal,
+      hour: hour,
+      minute: minute,
+      basePrayer: basePrayer,
+      minutesAfterPrayer: minutesAfterPrayer,
+      isBeforePrayer: isBeforePrayer,
+    );
+
+    final notifications = await getNotifications();
+    notifications.add(notification);
+    await saveNotifications(notifications);
+
+    await _scheduleDaily(
       id: _hashString('personal_$id'),
       titleEn: titleEn,
       titleAr: titleAr,
-      bodyEn: bodyEn,
-      bodyAr: bodyAr,
+      hour: hour,
+      minute: minute,
+    );
+  }
+
+  Future<void> updatePersonalNotification({
+    required String id,
+    required String titleEn,
+    required String titleAr,
+    required int hour,
+    required int minute,
+    String? basePrayer,
+    int? minutesAfterPrayer,
+    bool? isBeforePrayer,
+  }) async {
+    await cancelNotification('personal_$id');
+
+    final notifications = await getNotifications();
+    notifications.removeWhere((n) => n.id == id);
+    notifications.add(ScheduledNotification(
+      id: id,
+      titleEn: titleEn,
+      titleAr: titleAr,
+      bodyEn: '',
+      bodyAr: '',
+      category: NotificationCategory.personal,
+      hour: hour,
+      minute: minute,
+      basePrayer: basePrayer,
+      minutesAfterPrayer: minutesAfterPrayer,
+      isBeforePrayer: isBeforePrayer,
+    ));
+    await saveNotifications(notifications);
+
+    await _scheduleDaily(
+      id: _hashString('personal_$id'),
+      titleEn: titleEn,
+      titleAr: titleAr,
       hour: hour,
       minute: minute,
     );
@@ -453,6 +506,13 @@ class NotificationService {
 
   Future<void> cancelNotification(String id) async {
     await _plugin.cancel(_hashString(id));
+  }
+
+  Future<void> deletePersonalNotification(String scheduledId) async {
+    await _plugin.cancel(_hashString(scheduledId));
+    final notifications = await getNotifications();
+    notifications.removeWhere((n) => n.id == scheduledId.replaceFirst('personal_', ''));
+    await saveNotifications(notifications);
   }
 
   Future<void> cancelAll() async {
@@ -463,11 +523,17 @@ class NotificationService {
     required int id,
     required String titleEn,
     required String titleAr,
-    required String bodyEn,
-    required String bodyAr,
+    String bodyEn = '',
+    String bodyAr = '',
     required int hour,
     required int minute,
+    bool useAthanSound = false,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isAr = prefs.getString('locale') == 'ar';
+    final title = isAr ? titleAr : titleEn;
+    final body = isAr ? bodyAr : bodyEn;
+
     final now = DateTime.now();
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (scheduledDate.isBefore(now)) {
@@ -476,16 +542,21 @@ class NotificationService {
 
     await _plugin.zonedSchedule(
       id,
-      titleEn,
-      bodyEn,
+      title,
+      body,
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'athkar_notifications',
-          'Athkar Notifications',
-          channelDescription: 'Notifications for prayers and athkar',
+          useAthanSound ? 'prayer_notifications' : 'athkar_notifications',
+          useAthanSound ? 'Prayer Notifications' : 'Athkar Notifications',
+          channelDescription: useAthanSound
+              ? 'Prayer time notifications with Athan sound'
+              : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
+          sound: useAthanSound
+              ? const RawResourceAndroidNotificationSound('athan')
+              : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -505,12 +576,18 @@ class NotificationService {
     required int id,
     required String titleEn,
     required String titleAr,
-    required String bodyEn,
-    required String bodyAr,
+    String bodyEn = '',
+    String bodyAr = '',
     required int dayOfWeek,
     required int hour,
     required int minute,
+    bool useAthanSound = false,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isAr = prefs.getString('locale') == 'ar';
+    final title = isAr ? titleAr : titleEn;
+    final body = isAr ? bodyAr : bodyEn;
+
     final now = DateTime.now();
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     
@@ -520,16 +597,21 @@ class NotificationService {
 
     await _plugin.zonedSchedule(
       id,
-      titleEn,
-      bodyEn,
+      title,
+      body,
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'athkar_notifications',
-          'Athkar Notifications',
-          channelDescription: 'Notifications for prayers and athkar',
+          useAthanSound ? 'prayer_notifications' : 'athkar_notifications',
+          useAthanSound ? 'Prayer Notifications' : 'Athkar Notifications',
+          channelDescription: useAthanSound
+              ? 'Prayer time notifications with Athan sound'
+              : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
+          sound: useAthanSound
+              ? const RawResourceAndroidNotificationSound('athan')
+              : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,

@@ -44,6 +44,8 @@ class SettingsProvider extends ChangeNotifier {
     final savedLocale = prefs.getString(_keyLocale);
     if (savedLocale != null) {
       _locale = Locale(savedLocale);
+    } else {
+      await prefs.setString(_keyLocale, 'ar');
     }
 
     _isOnboarded = prefs.getBool(_keyOnboarded) ?? false;

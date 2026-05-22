@@ -48,7 +48,12 @@ class _SettingsTile extends StatelessWidget {
       case 'language':
         trailing = Text(s.isArabic ? 'العربية' : 'English',
             style: AppTypography.labelLarge.copyWith(color: cs.primary));
-        onTap = () => s.toggleLanguage();
+        onTap = () async {
+          await s.toggleLanguage();
+          if (context.mounted) {
+            context.read<PrayerTimeProvider>().rescheduleNotifications();
+          }
+        };
         break;
       case 'theme':
         final label = switch (s.themeMode) {

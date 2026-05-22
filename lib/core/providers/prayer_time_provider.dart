@@ -41,6 +41,13 @@ class PrayerTimeProvider extends ChangeNotifier {
   String? get error => _error;
   String get locationName => _locationName;
 
+  DateTime? get fajrTime => _prayerService.fajrTime;
+  DateTime? get dhuhrTime => _prayerService.dhuhrTime;
+  DateTime? get asrTime => _prayerService.asrTime;
+  DateTime? get maghribTime => _prayerService.maghribTime;
+  DateTime? get ishaTime => _prayerService.ishaTime;
+  DateTime? get sunriseTime => _prayerService.sunriseTime;
+
   Future<void> init() async {
     await _requestLocationPermission();
     await _loadPrayerTimes();
@@ -248,6 +255,10 @@ class PrayerTimeProvider extends ChangeNotifier {
 
   Future<void> refresh() async {
     await _loadPrayerTimes();
+  }
+
+  Future<void> rescheduleNotifications() async {
+    await _scheduleAllNotifications();
   }
 
   Future<void> setLocation(double lat, double lng) async {
