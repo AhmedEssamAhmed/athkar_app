@@ -12,13 +12,13 @@ class PrayerTimeProvider extends ChangeNotifier {
   final PrayerTimeService _prayerService = PrayerTimeService();
   final NotificationService _notificationService = NotificationService();
 
-   List<PrayerTime> _prayers = [];
-   HijriDate _hijriDate = const HijriDate(
-     day: 1,
-     monthName: 'Muharram',
-     monthNameAr: 'محرم',
-     year: 1447,
-   );
+  List<PrayerTime> _prayers = [];
+  HijriDate _hijriDate = const HijriDate(
+    day: 1,
+    monthName: 'Muharram',
+    monthNameAr: 'محرم',
+    year: 1447,
+  );
   String _midnightTime = '--:--';
   String _lastThirdTime = '--:--';
   String _duhaTime = '--:--';
@@ -28,6 +28,7 @@ class PrayerTimeProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _error;
   String _locationName = '';
+  bool _isArabic = false;
 
   List<PrayerTime> get prayers => _prayers;
   HijriDate get hijriDate => _hijriDate;
@@ -88,10 +89,12 @@ class PrayerTimeProvider extends ChangeNotifier {
         _prayerService.setCoordinates(position.latitude, position.longitude);
         await prefs.setDouble('user_lat', position.latitude);
         await prefs.setDouble('user_lng', position.longitude);
-        _locationName = '${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}';
+        _locationName =
+            '${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}';
       } else if (savedLat != null && savedLng != null) {
         _prayerService.setCoordinates(savedLat, savedLng);
-        _locationName = '${savedLat.toStringAsFixed(2)}, ${savedLng.toStringAsFixed(2)}';
+        _locationName =
+            '${savedLat.toStringAsFixed(2)}, ${savedLng.toStringAsFixed(2)}';
       } else {
         _prayerService.setDefaultLocation();
         _locationName = _prayerService.getCityName();
@@ -149,14 +152,14 @@ class PrayerTimeProvider extends ChangeNotifier {
     for (final p in prayerList) {
       final t = p['time'] as DateTime?;
       if (t != null && t.isAfter(now)) {
-        nextPrayerTime = _prayerService.formatTime(t);
+        nextPrayerTime = _prayerService.formatTime(t, isArabic: _isArabic);
         break;
       }
     }
 
     _prayers = prayerList.map((p) {
       final t = p['time'] as DateTime?;
-      final timeStr = _prayerService.formatTime(t);
+      final timeStr = _prayerService.formatTime(t, isArabic: _isArabic);
       bool isPassed = false;
       bool isCurrent = false;
 
@@ -187,22 +190,46 @@ class PrayerTimeProvider extends ChangeNotifier {
     }).toList();
 
     _hijriDate = _prayerService.getHijriDate();
-    _midnightTime = _prayerService.formatTime(_prayerService.midnightTime);
-    _lastThirdTime = _prayerService.formatTime(_prayerService.lastThirdOfNightTime);
-    _duhaTime = _prayerService.formatTime(_prayerService.duhaTime);
-    _fourthSixthTime = _prayerService.formatTime(_prayerService.fourthSixthOfNightTime);
-    
+    _midnightTime = _prayerService.formatTime(
+      _prayerService.midnightTime,
+      isArabic: _isArabic,
+    );
+
+    _lastThirdTime = _prayerService.formatTime(
+      _prayerService.lastThirdOfNightTime,
+      isArabic: _isArabic,
+    );
+
+    _duhaTime = _prayerService.formatTime(
+      _prayerService.duhaTime,
+      isArabic: _isArabic,
+    );
+
+    _fourthSixthTime = _prayerService.formatTime(
+      _prayerService.fourthSixthOfNightTime,
+      isArabic: _isArabic,
+    );
+
     final fajr = _prayerService.fajrTime;
     final maghrib = _prayerService.maghribTime;
     final sunrise = _prayerService.sunriseTime;
     if (fajr != null) {
-      _morningAthkarTime = _prayerService.formatTime(fajr.add(const Duration(minutes: 50)));
+      _morningAthkarTime = _prayerService.formatTime(
+        fajr.add(const Duration(minutes: 50)),
+        isArabic: _isArabic,
+      );
     }
     if (maghrib != null) {
-      _eveningAthkarTime = _prayerService.formatTime(maghrib.add(const Duration(minutes: 25)));
+      _eveningAthkarTime = _prayerService.formatTime(
+        maghrib.add(const Duration(minutes: 25)),
+        isArabic: _isArabic,
+      );
     }
     if (sunrise != null) {
-      _duhaTime = _prayerService.formatTime(sunrise.add(const Duration(minutes: 8)));
+      _duhaTime = _prayerService.formatTime(
+        sunrise.add(const Duration(minutes: 8)),
+        isArabic: _isArabic,
+      );
     }
 
     notifyListeners();
@@ -219,37 +246,42 @@ class PrayerTimeProvider extends ChangeNotifier {
     final prayerTimes = <String, DateTime>{};
     if (fajr != null) prayerTimes['fajr'] = fajr;
     if (sunrise != null) prayerTimes['sunrise'] = sunrise;
-    if (_prayerService.dhuhrTime != null) prayerTimes['dhuhr'] = _prayerService.dhuhrTime!;
-    if (_prayerService.asrTime != null) prayerTimes['asr'] = _prayerService.asrTime!;
+    if (_prayerService.dhuhrTime != null)
+      prayerTimes['dhuhr'] = _prayerService.dhuhrTime!;
+    if (_prayerService.asrTime != null)
+      prayerTimes['asr'] = _prayerService.asrTime!;
     if (maghrib != null) prayerTimes['maghrib'] = maghrib;
-    if (_prayerService.ishaTime != null) prayerTimes['isha'] = _prayerService.ishaTime!;
+    if (_prayerService.ishaTime != null)
+      prayerTimes['isha'] = _prayerService.ishaTime!;
 
     await _notificationService.schedulePrayerNotifications(prayerTimes);
-    
+
     if (sunrise != null) {
       await _notificationService.scheduleDuhaNotification(sunrise);
     }
-    
+
     if (fajr != null) {
       await _notificationService.scheduleMorningAthkar(fajr);
     }
-    
+
     if (maghrib != null) {
       await _notificationService.scheduleEveningAthkar(maghrib);
     }
-    
+
     if (maghrib != null && fajr != null) {
       await _notificationService.scheduleMidnightNotification(maghrib, fajr);
       await _notificationService.scheduleLastThirdNotification(maghrib, fajr);
       await _notificationService.scheduleFourthSixthNotification(maghrib, fajr);
     }
-    
+
     if (maghrib != null) {
       await _notificationService.scheduleFastingMonThuReminders(maghrib);
-      await _notificationService.scheduleWhiteDaysReminder(maghrib, hijriDate.day);
-      await _notificationService.scheduleMonthEntranceReminder(maghrib, hijriDate.day);
+      await _notificationService.scheduleWhiteDaysReminder(
+          maghrib, hijriDate.day);
+      await _notificationService.scheduleMonthEntranceReminder(
+          maghrib, hijriDate.day);
     }
-    
+
     await _notificationService.scheduleSurahKahfReminder();
   }
 
@@ -277,5 +309,12 @@ class PrayerTimeProvider extends ChangeNotifier {
     _updatePrayerTimes();
     await _scheduleAllNotifications();
     notifyListeners();
+  }
+
+  void setLanguage({required bool isArabic}) {
+    if (_isArabic == isArabic) return;
+
+    _isArabic = isArabic;
+    _updatePrayerTimes();
   }
 }

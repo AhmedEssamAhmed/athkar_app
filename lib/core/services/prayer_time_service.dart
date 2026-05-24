@@ -36,8 +36,6 @@ class PrayerTimeService {
     // and doesn't use the _hijriMethod field. This is kept for future implementation.
   }
 
-
-
   void _calculatePrayerTimes() {
     if (_coordinates == null) return;
 
@@ -79,7 +77,8 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 0, minute: 0);
     }
-    final sunsetToNextFajr = fajr.add(const Duration(days: 1)).difference(maghrib);
+    final sunsetToNextFajr =
+        fajr.add(const Duration(days: 1)).difference(maghrib);
     return maghrib.add(sunsetToNextFajr ~/ 2);
   }
 
@@ -89,7 +88,8 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 2, minute: 0);
     }
-    final sunsetToNextFajr = fajr.add(const Duration(days: 1)).difference(maghrib);
+    final sunsetToNextFajr =
+        fajr.add(const Duration(days: 1)).difference(maghrib);
     return maghrib.add((sunsetToNextFajr * 2) ~/ 3);
   }
 
@@ -99,7 +99,8 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 2, minute: 0);
     }
-    final sunsetToNextFajr = fajr.add(const Duration(days: 1)).difference(maghrib);
+    final sunsetToNextFajr =
+        fajr.add(const Duration(days: 1)).difference(maghrib);
     return maghrib.add((sunsetToNextFajr * 4) ~/ 6);
   }
 
@@ -136,11 +137,22 @@ class PrayerTimeService {
     return months[month];
   }
 
-  String formatTime(DateTime? time) {
+  String formatTime(DateTime? time, {bool isArabic = false}) {
     if (time == null) return '--:--';
-    final hour = time.hour.toString().padLeft(2, '0');
+
+    final hour = time.hour;
     final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+
+    final hour12 = hour == 0
+        ? 12
+        : hour > 12
+            ? hour - 12
+            : hour;
+
+    final period =
+        hour < 12 ? (isArabic ? 'صباحاً' : 'AM') : (isArabic ? 'مساءً' : 'PM');
+
+    return '$hour12:$minute $period';
   }
 
   String getCityName() {

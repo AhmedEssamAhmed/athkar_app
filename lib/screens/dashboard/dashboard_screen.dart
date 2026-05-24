@@ -36,8 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final position = await _determinePosition();
 
       // Start with coordinates as fallback
-      String locationName =
-          '${position.latitude.toStringAsFixed(3)}, '
+      String locationName = '${position.latitude.toStringAsFixed(3)}, '
           '${position.longitude.toStringAsFixed(3)}';
 
       // Try reverse geocoding for a friendly city name
@@ -114,6 +113,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hijri = prayerProvider.hijriDate;
     final prayers = prayerProvider.prayers;
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<PrayerTimeProvider>().setLanguage(isArabic: isAr);
+      }
+    });
+
     return Scaffold(
       body: SafeArea(
         child: prayerProvider.isLoading
@@ -126,54 +131,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: AppTheme.spaceMd),
-
                     _GreetingHeader(
                       isArabic: isAr,
                       hijri: hijri,
                       isLoadingLocation: _isLoadingLocation,
                       locationName: _locationName,
                     ),
-
                     const SizedBox(height: AppTheme.spaceMd),
-
                     _CurrentPrayerCard(prayers: prayers, isArabic: isAr),
-
                     const SizedBox(height: AppTheme.spaceMd),
-
                     Text(
                       isAr ? 'مواقيت الصلاة' : 'Prayer Times',
                       style: tt.titleLarge,
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
                     _PrayerTimesList(prayers: prayers, isArabic: isAr),
-
                     const SizedBox(height: AppTheme.spaceMd),
-
                     _SpecialTimesCard(
                       isArabic: isAr,
                       midnight: prayerProvider.midnightTime,
                       lastThird: prayerProvider.lastThirdTime,
                       duha: prayerProvider.duhaTime,
                     ),
-
                     const SizedBox(height: AppTheme.spaceMd),
-
                     _NotificationTimingsGrid(
                       isArabic: isAr,
                       morningAthkar: prayerProvider.morningAthkarTime,
                       eveningAthkar: prayerProvider.eveningAthkarTime,
                       fourthSixth: prayerProvider.fourthSixthTime,
                     ),
-
                     const SizedBox(height: AppTheme.spaceLg),
-
                     Text(
                       isAr ? 'الوصول السريع' : 'Quick Access',
                       style: tt.titleLarge,
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
                     _QuickAccessGrid(isArabic: isAr),
-
                     const SizedBox(height: AppTheme.spaceLg),
                   ],
                 ),
@@ -515,7 +508,9 @@ class _SpecialTimesCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isArabic ? item['titleAr'] as String : item['titleEn'] as String,
+                      isArabic
+                          ? item['titleAr'] as String
+                          : item['titleEn'] as String,
                       style: AppTypography.labelMedium.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
@@ -770,7 +765,9 @@ class _NotificationTimingsGrid extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isArabic ? item['titleAr'] as String : item['titleEn'] as String,
+                      isArabic
+                          ? item['titleAr'] as String
+                          : item['titleEn'] as String,
                       style: AppTypography.labelMedium.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
