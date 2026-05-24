@@ -124,17 +124,7 @@ class AthkarCategoriesScreen extends StatelessWidget {
   }
 
   int _countForCategory(AthkarCategory cat) {
-    // Placeholder counts — replace with real DB queries
-    return switch (cat) {
-      AthkarCategory.morning => 27,
-      AthkarCategory.evening => 25,
-      AthkarCategory.afterPrayer => 10,
-      AthkarCategory.sleep => 12,
-      AthkarCategory.wakeUp => 5,
-      AthkarCategory.quranDua => 15,
-      AthkarCategory.propheticDua => 20,
-      AthkarCategory.misc => 18,
-    };
+    return AthkarData.forCategory(cat.key).length;
   }
 }
 
@@ -154,7 +144,7 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _athkar = AthkarData.sampleMorningAthkar(); // Use sample for all for now
+    _athkar = AthkarData.forCategory(widget.category.key);
     _currentCounts = _athkar.map((d) {
       final saved = HiveService.getDhikrProgress(d.id);
       return saved ?? 0;

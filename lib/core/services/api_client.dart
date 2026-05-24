@@ -8,9 +8,9 @@ import 'package:http/http.dart' as http;
 /// Change [_baseUrl] when deploying to Cloud Run or another host.
 class ApiClient {
   // ── Configuration ──────────────────────────────────────────────
-  // For Android emulator use `10.0.2.2` instead of `localhost`.
-  // For physical device use your machine's LAN IP.
-  static const String _baseUrl = 'http://localhost:8000';
+  // `10.0.2.2` is the Android emulator alias for the host machine (your PC).
+  // For a physical device, replace with your PC's LAN IP (e.g. http://192.168.1.x:8000).
+  static const String _baseUrl = 'http://10.0.2.2:8000';
 
   final http.Client _client;
 
