@@ -1,11 +1,11 @@
 {
-    "name": "noor_athkar",
-    "short_name": "noor_athkar",
+    "name": "Noor Athkar",
+    "short_name": "Noor Athkar",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#003328",
+    "theme_color": "#004337",
+    "description": "Noor Athkar is an Islamic companion app for daily remembrance, prayer times, Quran reading, tasbeeh, reminders, and Qibla tools.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

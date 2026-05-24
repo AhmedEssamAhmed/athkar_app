@@ -1,17 +1,27 @@
-# noor_athkar
+# Noor Athkar
 
-A new Flutter project.
+Noor Athkar is a Flutter Islamic companion app for daily remembrance, prayer times, Quran reading, tasbeeh, reminders, nearby mosques, and Qibla direction.
 
-## Getting Started
+## Setup
 
-This project is a starting point for a Flutter application.
+Install dependencies:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Run the app:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter run
+```
+
+Run tests:
+
+```bash
+flutter test
+```
+
+## Backend
+
+The optional local backend lives in `backend/`. Copy `backend/.env.example` to `backend/.env`, fill in any required keys, then install and run the Python service from that folder.

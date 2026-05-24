@@ -69,6 +69,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _loadPersonalNotifications() async {
     final notifications = await _notificationService.getNotifications();
+    if (!mounted) return;
+
     setState(() {
       _personalNotifications = notifications
           .where((n) => n.category == NotificationCategory.personal)
@@ -83,6 +85,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       _prefs[index] = pref.copyWith(isEnabled: newState);
     });
     await _saveReminderToggleStates();
+    if (!mounted) return;
+
     if (!newState) {
       await _notificationService.cancelNotification(
         _scheduledNotificationId(pref.id),
