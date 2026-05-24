@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/providers/settings_provider.dart';
+import '../../main.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -58,9 +61,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigate() {
+    final settings = context.read<SettingsProvider>();
+    final destination = settings.isOnboarded
+        ? const AppShell()         // already seen onboarding → go to main app
+        : const OnboardingScreen(); // first launch → show onboarding
+
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const OnboardingScreen(),
+        pageBuilder: (_, __, ___) => destination,
         transitionDuration: const Duration(milliseconds: 600),
         transitionsBuilder: (_, a, __, child) =>
             FadeTransition(opacity: a, child: child),

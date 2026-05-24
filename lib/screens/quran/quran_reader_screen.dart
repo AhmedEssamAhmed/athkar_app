@@ -208,62 +208,27 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         ),
       ),
     );
-   }
-   
-   Widget _buildSurahSection(int surahNum, List<PageAyah> ayahs, ColorScheme cs, int pageNum) {
-     final isFirstAyah = ayahs.first.numberInSurah == 1;
-     final widgets = <Widget>[];
+  }
 
-     // Surah header if first ayah of surah appears on this page
-     if (isFirstAyah) {
-       widgets.add(_SurahHeader(surahNum: surahNum, cs: cs));
-       widgets.add(const SizedBox(height: 12));
+  Widget _buildSurahSection(int surahNum, List<PageAyah> ayahs, ColorScheme cs, int pageNum) {
+    final isFirstAyah = ayahs.first.numberInSurah == 1;
+    final widgets = <Widget>[];
 
-       // Bismillah in header for all surahs except:
-       // - Surah 1 (Al-Fatihah): basmalah is part of verse 1 text
-       // - Surah 9 (At-Tawbah): no basmalah at all
-       if (surahNum != 1 && surahNum != 9) {
-         widgets.add(
-           Text(
-             'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ',
-             style: AppTypography.arabicBody.copyWith(
-               color: cs.primary,
-               fontSize: 20,
-               height: 2.0,
-             ),
-             textAlign: TextAlign.center,
-             textDirection: TextDirection.rtl,
-           ),
-         );
-         widgets.add(const SizedBox(height: 12));
-       }
-     }
+    // Surah header if first ayah of surah appears on this page
+    if (isFirstAyah) {
+      widgets.add(_SurahHeader(surahNum: surahNum, cs: cs));
+      widgets.add(const SizedBox(height: 12));
 
-     // Ayah text — combine into flowing paragraph with ayah markers
-     final buffer = StringBuffer();
-     for (int i = 0; i < ayahs.length; i++) {
-       final ayah = ayahs[i];
-       // Remove basmalah from the beginning of first verse for surahs that have it in header
-       // (except Surah 1 where it's part of the verse, and Surah 9 where there is none)
-       String textToDisplay = ayah.text;
-       if (i == 0 && surahNum != 1 && surahNum != 9) {
-         // Remove basmalah from start of text if it exists
-         // The exact basmalah string varies by API edition.
-         const basmalah1 = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'; // quran-uthmani
-         const basmalah2 = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ'; // fallback
-         
-         if (textToDisplay.startsWith(basmalah1)) {
-           textToDisplay = textToDisplay.substring(basmalah1.length).trimLeft();
-         } else if (textToDisplay.startsWith(basmalah2)) {
-           textToDisplay = textToDisplay.substring(basmalah2.length).trimLeft();
-         } else {
-           textToDisplay = textToDisplay.replaceFirst(RegExp(r'^بِسْمِ.*?الرَّحِيمِ\s*'), '').trimLeft();
-           textToDisplay = textToDisplay.replaceFirst(RegExp(r'^بِسْمِ.*?ٱلرَّحِيمِ\s*'), '').trimLeft();
-         }
-       }
-       buffer.write(textToDisplay);
-       buffer.write(' ﴿${_toArabicNum(ayah.numberInSurah)}﴾ ');
-     }
+      // Note: basmala is already included in the API verse text for verse 1,
+      // so we do NOT add it manually to avoid duplication.
+    }
+
+    // Ayah text — combine into flowing paragraph with ayah markers
+    final buffer = StringBuffer();
+    for (final ayah in ayahs) {
+      buffer.write(ayah.text);
+      buffer.write(' ﴿${_toArabicNum(ayah.numberInSurah)}﴾ ');
+    }
 
     widgets.add(
       Text(
