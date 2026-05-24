@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -52,26 +53,73 @@ class _RemindersScreenState extends State<RemindersScreen> {
     await _notificationService.showTestNotification(
       titleEn: pref.titleEn,
       titleAr: pref.titleAr,
-      bodyEn: pref.descriptionEn ?? 'Test notification',
-      bodyAr: pref.descriptionAr ?? 'إشعار تجريبي',
+      bodyEn: 'Test notification',
+      bodyAr: 'إشعار تجريبي',
+      category: pref.category,
     );
   }
 
   void _addPersonalNotification() {
+    _showDialog(existing: null);
+  }
+
+  void _editPersonalNotification(ScheduledNotification existing) {
+    _showDialog(existing: existing);
+  }
+
+  void _showDialog({ScheduledNotification? existing}) {
+    final isAr = context.read<SettingsProvider>().isArabic;
     showDialog(
       context: context,
-      builder: (context) => _AddPersonalNotificationDialog(
-        onAdd: (titleEn, titleAr, bodyEn, bodyAr, hour, minute) async {
-          final id = DateTime.now().millisecondsSinceEpoch.toString();
-          await _notificationService.schedulePersonalNotification(
-            id: id,
-            titleEn: titleEn,
-            titleAr: titleAr,
-            bodyEn: bodyEn,
-            bodyAr: bodyAr,
-            hour: hour,
-            minute: minute,
-          );
+      builder: (ctx) => _PersonalNotificationDialog(
+        existing: existing,
+        isAr: isAr,
+        onSaved: (titleEn, titleAr, hour, minute, basePrayer, minutesAfterPrayer, isBeforePrayer) async {
+          final id = existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+          int actualHour = hour;
+          int actualMinute = minute;
+
+          if (basePrayer != null && minutesAfterPrayer != null) {
+            final provider = context.read<PrayerTimeProvider>();
+            final prayerTimes = <String, DateTime>{};
+            if (provider.fajrTime != null) prayerTimes['fajr'] = provider.fajrTime!;
+            if (provider.dhuhrTime != null) prayerTimes['dhuhr'] = provider.dhuhrTime!;
+            if (provider.asrTime != null) prayerTimes['asr'] = provider.asrTime!;
+            if (provider.maghribTime != null) prayerTimes['maghrib'] = provider.maghribTime!;
+            if (provider.ishaTime != null) prayerTimes['isha'] = provider.ishaTime!;
+
+            final prayerTime = prayerTimes[basePrayer];
+            if (prayerTime != null) {
+              final offset = isBeforePrayer == true ? -minutesAfterPrayer : minutesAfterPrayer;
+              final totalMinutes = prayerTime.hour * 60 + prayerTime.minute + offset;
+              actualHour = ((totalMinutes % 1440) + 1440) % 1440 ~/ 60;
+              actualMinute = ((totalMinutes % 1440) + 1440) % 1440 % 60;
+            }
+          }
+
+          if (existing != null) {
+            await _notificationService.updatePersonalNotification(
+              id: id,
+              titleEn: titleEn,
+              titleAr: titleAr,
+              hour: actualHour,
+              minute: actualMinute,
+              basePrayer: basePrayer,
+              minutesAfterPrayer: minutesAfterPrayer,
+              isBeforePrayer: isBeforePrayer,
+            );
+          } else {
+            await _notificationService.schedulePersonalNotification(
+              id: id,
+              titleEn: titleEn,
+              titleAr: titleAr,
+              hour: actualHour,
+              minute: actualMinute,
+              basePrayer: basePrayer,
+              minutesAfterPrayer: minutesAfterPrayer,
+              isBeforePrayer: isBeforePrayer,
+            );
+          }
           await _loadPersonalNotifications();
         },
       ),
@@ -79,7 +127,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Future<void> _deletePersonalNotification(String id) async {
-    await _notificationService.cancelNotification(id);
+    await _notificationService.deletePersonalNotification('personal_$id');
     await _loadPersonalNotifications();
   }
 
@@ -113,6 +161,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
             notification: n,
             isAr: isAr,
             onDelete: () => _deletePersonalNotification(n.id),
+            onEdit: () => _editPersonalNotification(n),
           )),
           const SizedBox(height: AppTheme.spaceSm),
           _AddPersonalTile(isAr: isAr, onTap: _addPersonalNotification),
@@ -228,18 +277,6 @@ class _ReminderTile extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(isAr ? pref.titleAr : pref.titleEn, style: AppTypography.bodyLarge),
-            if (pref.descriptionEn != null && !isAr)
-              Text(pref.descriptionEn!,
-                  style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
-            if (pref.descriptionAr != null && isAr)
-              Text(pref.descriptionAr!,
-                  style: AppTypography.labelMedium.copyWith(color: cs.onSurfaceVariant)),
-            if (pref.scheduledTime != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(pref.scheduledTime!,
-                    style: AppTypography.labelMedium.copyWith(color: cs.primary)),
-              ),
           ]),
         ),
         TextButton(
@@ -256,20 +293,49 @@ class _ReminderTile extends StatelessWidget {
   }
 }
 
+const _prayerOptions = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+
+const _prayerNames = {
+  'fajr': ('Fajr', 'الفجر'),
+  'dhuhr': ('Dhuhr', 'الظهر'),
+  'asr': ('Asr', 'العصر'),
+  'maghrib': ('Maghrib', 'المغرب'),
+  'isha': ('Isha', 'العشاء'),
+};
+
 class _PersonalNotificationTile extends StatelessWidget {
   final ScheduledNotification notification;
   final bool isAr;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   const _PersonalNotificationTile({
     required this.notification,
     required this.isAr,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final time = '${notification.hour.toString().padLeft(2, '0')}:${notification.minute.toString().padLeft(2, '0')}';
+
+    String timeText;
+    if (notification.basePrayer != null && notification.minutesAfterPrayer != null) {
+      final prayerName = _prayerNames[notification.basePrayer];
+      final mins = notification.minutesAfterPrayer!;
+      final before = notification.isBeforePrayer == true;
+      if (isAr) {
+        timeText = before
+            ? 'قبل $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}'
+            : 'بعد $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}';
+      } else {
+        timeText = before
+            ? '$mins min before ${prayerName?.$1 ?? notification.basePrayer}'
+            : '$mins min after ${prayerName?.$1 ?? notification.basePrayer}';
+      }
+    } else {
+      timeText = '${notification.hour.toString().padLeft(2, '0')}:${notification.minute.toString().padLeft(2, '0')}';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -293,8 +359,12 @@ class _PersonalNotificationTile extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(isAr ? notification.titleAr : notification.titleEn, style: AppTypography.bodyLarge),
-            Text(time, style: AppTypography.labelMedium.copyWith(color: cs.primary)),
+            Text(timeText, style: AppTypography.labelMedium.copyWith(color: cs.primary)),
           ]),
+        ),
+        IconButton(
+          icon: Icon(Icons.edit_outlined, color: cs.onSurfaceVariant, size: 20),
+          onPressed: onEdit,
         ),
         IconButton(
           icon: Icon(Icons.delete_outline, color: cs.error, size: 20),
@@ -342,107 +412,188 @@ class _AddPersonalTile extends StatelessWidget {
   }
 }
 
-class _AddPersonalNotificationDialog extends StatefulWidget {
-  final Function(String titleEn, String titleAr, String bodyEn, String bodyAr, int hour, int minute) onAdd;
-  const _AddPersonalNotificationDialog({required this.onAdd});
+class _PersonalNotificationDialog extends StatefulWidget {
+  final ScheduledNotification? existing;
+  final bool isAr;
+  final void Function(
+    String titleEn,
+    String titleAr,
+    int hour,
+    int minute,
+    String? basePrayer,
+    int? minutesAfterPrayer,
+    bool? isBeforePrayer,
+  ) onSaved;
+
+  const _PersonalNotificationDialog({
+    this.existing,
+    required this.isAr,
+    required this.onSaved,
+  });
 
   @override
-  State<_AddPersonalNotificationDialog> createState() => _AddPersonalNotificationDialogState();
+  State<_PersonalNotificationDialog> createState() => _PersonalNotificationDialogState();
 }
 
-class _AddPersonalNotificationDialogState extends State<_AddPersonalNotificationDialog> {
-  final _titleEnController = TextEditingController();
-  final _titleArController = TextEditingController();
-  final _bodyEnController = TextEditingController();
-  final _bodyArController = TextEditingController();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog> {
+  final _titleController = TextEditingController();
+  bool _usePrayerTime = false;
+  String _selectedPrayer = 'fajr';
+  bool _isBeforePrayer = false;
+  int _offsetMinutes = 15;
+  TimeOfDay _fixedTime = TimeOfDay.now();
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      if (widget.isAr) {
+        _titleController.text = existing.titleAr;
+      } else {
+        _titleController.text = existing.titleEn;
+      }
+      if (existing.basePrayer != null) {
+        _usePrayerTime = true;
+        _selectedPrayer = existing.basePrayer!;
+        _offsetMinutes = existing.minutesAfterPrayer ?? 15;
+        _isBeforePrayer = existing.isBeforePrayer ?? false;
+      } else {
+        _fixedTime = TimeOfDay(hour: existing.hour ?? 0, minute: existing.minute ?? 0);
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _titleEnController.dispose();
-    _titleArController.dispose();
-    _bodyEnController.dispose();
-    _bodyArController.dispose();
+    _titleController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (time != null) {
-      setState(() => _selectedTime = time);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isAr = context.watch<SettingsProvider>().isArabic;
+    final isAr = widget.isAr;
 
     return AlertDialog(
-      title: Text(isAr ? 'إشعار شخصي جديد' : 'New Personal Notification'),
+      title: Text(widget.existing != null
+          ? (isAr ? 'تعديل الإشعار' : 'Edit Notification')
+          : (isAr ? 'إشعار شخصي جديد' : 'New Personal Notification')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: _titleEnController,
+              controller: _titleController,
               decoration: InputDecoration(
-                labelText: 'Title (English)',
+                labelText: isAr ? 'العنوان' : 'Title',
                 border: const OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _titleArController,
-              decoration: InputDecoration(
-                labelText: 'العنوان (العربية)',
-                border: const OutlineInputBorder(),
-              ),
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _bodyEnController,
-              decoration: InputDecoration(
-                labelText: 'Description (English)',
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _bodyArController,
-              decoration: InputDecoration(
-                labelText: 'الوصف (العربية)',
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 2,
-              textDirection: TextDirection.rtl,
+              textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
             ),
             const SizedBox(height: 16),
-            InkWell(
-              onTap: _selectTime,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: cs.outline),
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: Text(isAr ? 'وقت محدد' : 'Fixed Time', style: AppTypography.bodyMedium),
+                    value: false,
+                    groupValue: _usePrayerTime,
+                    onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(isAr ? 'وقت الإشعار' : 'Notification Time'),
-                    Text(
-                      _selectedTime.format(context),
-                      style: AppTypography.bodyLarge.copyWith(color: cs.primary),
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: Text(isAr ? 'حسب الصلاة' : 'By Prayer', style: AppTypography.bodyMedium),
+                    value: true,
+                    groupValue: _usePrayerTime,
+                    onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ),
+              ],
+            ),
+            if (_usePrayerTime) ...[
+              DropdownButtonFormField<String>(
+                value: _selectedPrayer,
+                decoration: InputDecoration(
+                  labelText: isAr ? 'الصلاة' : 'Prayer',
+                  border: const OutlineInputBorder(),
+                ),
+                items: _prayerOptions.map((p) {
+                  final names = _prayerNames[p]!;
+                  return DropdownMenuItem(
+                    value: p,
+                    child: Text(isAr ? names.$2 : names.$1),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() => _selectedPrayer = v!),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(value: false, label: Text(isAr ? 'بعد' : 'After')),
+                        ButtonSegment(value: true, label: Text(isAr ? 'قبل' : 'Before')),
+                      ],
+                      selected: {_isBeforePrayer},
+                      onSelectionChanged: (v) => setState(() => _isBeforePrayer = v.first),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: isAr ? 'عدد الدقائق' : 'Minutes',
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      controller: TextEditingController(text: _offsetMinutes.toString()),
+                      onChanged: (v) => _offsetMinutes = int.tryParse(v) ?? 0,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(isAr ? 'دقيقة' : 'min', style: AppTypography.bodyMedium),
+                ],
+              ),
+            ] else ...[
+              InkWell(
+                onTap: () async {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: _fixedTime,
+                  );
+                  if (time != null) setState(() => _fixedTime = time);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: cs.outline),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(isAr ? 'وقت الإشعار' : 'Notification Time'),
+                      Text(
+                        _fixedTime.format(context),
+                        style: AppTypography.bodyLarge.copyWith(color: cs.primary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -453,18 +604,22 @@ class _AddPersonalNotificationDialogState extends State<_AddPersonalNotification
         ),
         FilledButton(
           onPressed: () {
-            if (_titleEnController.text.isEmpty || _titleArController.text.isEmpty) return;
-            widget.onAdd(
-              _titleEnController.text,
-              _titleArController.text,
-              _bodyEnController.text,
-              _bodyArController.text,
-              _selectedTime.hour,
-              _selectedTime.minute,
+            if (_titleController.text.isEmpty) return;
+            final title = _titleController.text.trim();
+            widget.onSaved(
+              isAr ? '' : title,
+              isAr ? title : '',
+              _fixedTime.hour,
+              _fixedTime.minute,
+              _usePrayerTime ? _selectedPrayer : null,
+              _usePrayerTime ? _offsetMinutes : null,
+              _usePrayerTime ? _isBeforePrayer : null,
             );
             Navigator.pop(context);
           },
-          child: Text(isAr ? 'إضافة' : 'Add'),
+          child: Text(widget.existing != null
+              ? (isAr ? 'حفظ' : 'Save')
+              : (isAr ? 'إضافة' : 'Add')),
         ),
       ],
     );

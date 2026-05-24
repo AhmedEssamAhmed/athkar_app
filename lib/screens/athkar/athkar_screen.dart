@@ -82,7 +82,8 @@ class AthkarCategoriesScreen extends StatelessWidget {
                           color: colors[index].withAlpha(30),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(icons[index], color: colors[index], size: 26),
+                        child:
+                            Icon(icons[index], color: colors[index], size: 26),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -106,7 +107,9 @@ class AthkarCategoriesScreen extends StatelessWidget {
                         ),
                       ),
                       Icon(
-                        isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                        isAr
+                            ? Icons.chevron_left_rounded
+                            : Icons.chevron_right_rounded,
                         color: cs.outline,
                       ),
                     ],
@@ -146,23 +149,25 @@ class AthkarReaderScreen extends StatefulWidget {
 
 class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
   late List<Dhikr> _athkar;
-  late List<int> _remainingCounts;
+  late List<int> _currentCounts;
 
   @override
   void initState() {
     super.initState();
     _athkar = AthkarData.sampleMorningAthkar(); // Use sample for all for now
-    _remainingCounts = _athkar.map((d) {
+    _currentCounts = _athkar.map((d) {
       final saved = HiveService.getDhikrProgress(d.id);
-      return saved ?? d.repeatCount;
+      return saved ?? 0;
     }).toList();
   }
 
   void _onTapDhikr(int index) {
-    if (_remainingCounts[index] > 0) {
+    final target = _athkar[index].repeatCount;
+
+    if (_currentCounts[index] < target) {
       setState(() {
-        _remainingCounts[index]--;
-        HiveService.saveDhikrProgress(_athkar[index].id, _remainingCounts[index]);
+        _currentCounts[index]++;
+        HiveService.saveDhikrProgress(_athkar[index].id, _currentCounts[index]);
       });
     }
   }
@@ -170,7 +175,7 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
   void _resetAll() {
     setState(() {
       for (int i = 0; i < _athkar.length; i++) {
-        _remainingCounts[i] = _athkar[i].repeatCount;
+        _currentCounts[i] = 0;
       }
     });
     HiveService.resetCategoryProgress(_athkar.map((d) => d.id).toList());
@@ -199,8 +204,9 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
         itemCount: _athkar.length,
         itemBuilder: (context, index) {
           final dhikr = _athkar[index];
-          final remaining = _remainingCounts[index];
-          final done = remaining == 0;
+          final current = _currentCounts[index];
+          final target = dhikr.repeatCount;
+          final done = current >= target;
 
           return GestureDetector(
             onTap: () => _onTapDhikr(index),
@@ -208,12 +214,12 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
               padding: const EdgeInsets.all(AppTheme.spaceMd),
               margin: const EdgeInsets.all(AppTheme.marginMobile),
               decoration: BoxDecoration(
-                color: done
-                    ? cs.primaryContainer.withAlpha(20)
-                    : cs.surface,
+                color: done ? cs.primaryContainer.withAlpha(20) : cs.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                 border: Border.all(
-                  color: done ? cs.primary.withAlpha(40) : cs.outlineVariant.withAlpha(60),
+                  color: done
+                      ? cs.primary.withAlpha(40)
+                      : cs.outlineVariant.withAlpha(60),
                   width: done ? 1.5 : 0.5,
                 ),
               ),
@@ -246,7 +252,8 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
 
                   // Counter chip
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
                       color: done
                           ? cs.primary
@@ -254,9 +261,7 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                     ),
                     child: Text(
-                      done
-                          ? (isAr ? '✓ تم' : '✓ Done')
-                          : '$remaining / ${dhikr.repeatCount}',
+                      done ? (isAr ? '✓ تم' : '✓ Done') : '$current / $target',
                       style: AppTypography.titleLarge.copyWith(
                         color: done ? cs.onPrimary : AppColors.goldenAccent,
                       ),
@@ -276,7 +281,9 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
 
                   const SizedBox(height: 8),
                   Text(
-                    isAr ? 'اضغط للعد • اسحب للتالي' : 'Tap to count • Swipe for next',
+                    isAr
+                        ? 'اضغط للعد • اسحب للتالي'
+                        : 'Tap to count • Swipe for next',
                     style: AppTypography.labelMedium.copyWith(
                       color: cs.outline.withAlpha(120),
                     ),

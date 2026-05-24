@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -12,8 +14,96 @@ import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String _locationName = PrayerData.defaultLocationName;
+  bool _isLoadingLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    try {
+      final position = await _determinePosition();
+
+      // Start with coordinates as fallback
+      String locationName =
+          '${position.latitude.toStringAsFixed(3)}, '
+          '${position.longitude.toStringAsFixed(3)}';
+
+      // Try reverse geocoding for a friendly city name
+      try {
+        final places = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (places.isNotEmpty) {
+          final place = places.first;
+          final city = place.locality?.isNotEmpty == true
+              ? place.locality
+              : place.administrativeArea;
+          final country = place.country;
+          locationName = [
+            if (city != null && city.isNotEmpty) city,
+            if (country != null && country.isNotEmpty) country,
+          ].join(', ');
+        }
+      } catch (_) {
+        // Keep coordinates if reverse geocoding fails
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _locationName = locationName;
+        _isLoadingLocation = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _locationName = PrayerData.defaultLocationName;
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  Future<Position> _determinePosition() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    var permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permission denied.');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Location permission permanently denied.');
+    }
+
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +127,12 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    _GreetingHeader(isArabic: isAr, hijri: hijri),
+                    _GreetingHeader(
+                      isArabic: isAr,
+                      hijri: hijri,
+                      isLoadingLocation: _isLoadingLocation,
+                      locationName: _locationName,
+                    ),
 
                     const SizedBox(height: AppTheme.spaceMd),
 
@@ -91,8 +186,15 @@ class DashboardScreen extends StatelessWidget {
 class _GreetingHeader extends StatelessWidget {
   final bool isArabic;
   final dynamic hijri;
+  final bool isLoadingLocation;
+  final String locationName;
 
-  const _GreetingHeader({required this.isArabic, required this.hijri});
+  const _GreetingHeader({
+    required this.isArabic,
+    required this.hijri,
+    required this.isLoadingLocation,
+    required this.locationName,
+  });
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -126,6 +228,31 @@ class _GreetingHeader extends StatelessWidget {
           style: AppTypography.bodyMedium.copyWith(
             color: cs.onSurfaceVariant,
           ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              size: 16,
+              color: cs.primary,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                isLoadingLocation
+                    ? (isArabic
+                        ? 'جاري تحديد الموقع...'
+                        : 'Detecting location...')
+                    : locationName,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -513,7 +640,8 @@ class _QuickAccessTile extends StatelessWidget {
           if (item.tabIndex != null) {
             AppShell.navigateTo(context, item.tabIndex!);
           } else if (item.screen != null) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => item.screen!));
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => item.screen!));
           }
         },
         child: Container(

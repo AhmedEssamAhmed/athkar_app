@@ -31,7 +31,10 @@ void main() {
     });
 
     test('PrayerData returns prayers', () {
-      final prayers = PrayerData.todayPrayers();
+      final prayers = PrayerData.todayPrayers(
+        latitude: PrayerData.defaultLatitude,
+        longitude: PrayerData.defaultLongitude,
+      );
       expect(prayers.length, 6);
       expect(prayers.first.name, 'Fajr');
       expect(prayers.last.name, 'Isha');
