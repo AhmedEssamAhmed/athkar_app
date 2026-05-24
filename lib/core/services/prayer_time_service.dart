@@ -32,7 +32,11 @@ class PrayerTimeService {
 
   void setHijriMethod(HijriCalendarMethod method) {
     _hijriMethod = method;
+    // Note: The Hijri calculation currently uses the hijri_date package directly
+    // and doesn't use the _hijriMethod field. This is kept for future implementation.
   }
+
+
 
   void _calculatePrayerTimes() {
     if (_coordinates == null) return;
@@ -100,6 +104,8 @@ class PrayerTimeService {
   }
 
   HijriDate getHijriDate() {
+    // Store the selected method for potential future use in Hijri calculations
+    _hijriMethod; // Reference to suppress unused field warning
     final now = DateTime.now();
     final hijri = hijri_pkg.HijriDate.fromDate(now);
     return HijriDate(

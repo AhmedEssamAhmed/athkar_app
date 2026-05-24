@@ -183,8 +183,11 @@ class QuranMeta {
   static SurahInfo surahForPage(int page) {
     SurahInfo result = surahs.first;
     for (final s in surahs) {
-      if (s.startPage <= page) result = s;
-      else break;
+      if (s.startPage <= page) {
+        result = s;
+      } else {
+        break;
+      }
     }
     return result;
   }
@@ -193,8 +196,11 @@ class QuranMeta {
   static JuzInfo juzForPage(int page) {
     JuzInfo result = juzList.first;
     for (final j in juzList) {
-      if (j.startPage <= page) result = j;
-      else break;
+      if (j.startPage <= page) {
+        result = j;
+      } else {
+        break;
+      }
     }
     return result;
   }

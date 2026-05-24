@@ -12,13 +12,13 @@ class PrayerTimeProvider extends ChangeNotifier {
   final PrayerTimeService _prayerService = PrayerTimeService();
   final NotificationService _notificationService = NotificationService();
 
-  List<PrayerTime> _prayers = [];
-  HijriDate _hijriDate = HijriDate(
-    day: 1,
-    monthName: 'Muharram',
-    monthNameAr: 'محرم',
-    year: 1447,
-  );
+   List<PrayerTime> _prayers = [];
+   HijriDate _hijriDate = const HijriDate(
+     day: 1,
+     monthName: 'Muharram',
+     monthNameAr: 'محرم',
+     year: 1447,
+   );
   String _midnightTime = '--:--';
   String _lastThirdTime = '--:--';
   String _duhaTime = '--:--';

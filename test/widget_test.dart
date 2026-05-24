@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:noor_athkar/modules/prayer_module.dart';
@@ -39,18 +38,18 @@ void main() {
     });
   });
 
-  group('Notifications Module Tests', () {
-    test('NotificationPreference creates correctly', () {
-      const pref = NotificationPreference(
-        id: 'fajr_alert',
-        titleEn: 'Fajr Prayer',
-        titleAr: 'صلاة الفجر',
-        isEnabled: true,
-        category: NotificationCategory.prayer,
-      );
-      expect(pref.id, 'fajr_alert');
-      expect(pref.isEnabled, true);
-    });
+   group('Notifications Module Tests', () {
+     test('NotificationPreference creates correctly', () {
+       final pref = NotificationPreference(
+         id: 'fajr_alert',
+         titleEn: 'Fajr Prayer',
+         titleAr: 'صلاة الفجر',
+         isEnabled: true,
+         category: NotificationCategory.prayer,
+       );
+       expect(pref.id, 'fajr_alert');
+       expect(pref.isEnabled, true);
+     });
 
     test('NotificationData returns defaults', () {
       final defaults = NotificationData.defaults();
