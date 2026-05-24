@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
@@ -16,6 +17,8 @@ class RemindersScreen extends StatefulWidget {
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
+  static const _disabledReminderPrefsKey = 'disabled_reminder_toggles';
+
   late List<NotificationPreference> _prefs;
   final NotificationService _notificationService = NotificationService();
   List<ScheduledNotification> _personalNotifications = [];
@@ -24,7 +27,44 @@ class _RemindersScreenState extends State<RemindersScreen> {
   void initState() {
     super.initState();
     _prefs = NotificationData.defaults();
+    _loadReminderToggleStates();
     _loadPersonalNotifications();
+  }
+
+  Future<void> _loadReminderToggleStates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final disabledIds =
+        (prefs.getStringList(_disabledReminderPrefsKey) ?? []).toSet();
+    if (!mounted) return;
+
+    setState(() {
+      _prefs = _prefs
+          .map((pref) => pref.copyWith(isEnabled: !disabledIds.contains(pref.id)))
+          .toList();
+    });
+  }
+
+  Future<void> _saveReminderToggleStates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final disabledIds = _prefs
+        .where((pref) => !pref.isEnabled)
+        .map((pref) => pref.id)
+        .toList();
+    await prefs.setStringList(_disabledReminderPrefsKey, disabledIds);
+  }
+
+  String _scheduledNotificationId(String preferenceId) {
+    return switch (preferenceId) {
+      'fajr_alert' => 'prayer_fajr',
+      'sunrise_alert' => 'prayer_sunrise',
+      'dhuhr_alert' => 'prayer_dhuhr',
+      'asr_alert' => 'prayer_asr',
+      'maghrib_alert' => 'prayer_maghrib',
+      'isha_alert' => 'prayer_isha',
+      'duha_alert' => 'duha_prayer',
+      'white_days' => 'white_days_reminder',
+      _ => preferenceId,
+    };
   }
 
   Future<void> _loadPersonalNotifications() async {
@@ -42,8 +82,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
     setState(() {
       _prefs[index] = pref.copyWith(isEnabled: newState);
     });
+    await _saveReminderToggleStates();
     if (!newState) {
-      await _notificationService.cancelNotification(pref.id);
+      await _notificationService.cancelNotification(
+        _scheduledNotificationId(pref.id),
+      );
     } else {
       await context.read<PrayerTimeProvider>().refresh();
     }
@@ -315,6 +358,20 @@ class _PersonalNotificationTile extends StatelessWidget {
     required this.onEdit,
   });
 
+  String _formatFixedTime() {
+    final hour = notification.hour;
+    final minute = notification.minute;
+    if (hour == null || minute == null) return '--:--';
+
+    final hour12 = hour == 0
+        ? 12
+        : hour > 12
+            ? hour - 12
+            : hour;
+    final period = hour < 12 ? (isAr ? 'صباحاً' : 'AM') : (isAr ? 'مساءً' : 'PM');
+    return '$hour12:${minute.toString().padLeft(2, '0')} $period';
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -334,7 +391,7 @@ class _PersonalNotificationTile extends StatelessWidget {
             : '$mins min after ${prayerName?.$1 ?? notification.basePrayer}';
       }
     } else {
-      timeText = '${notification.hour.toString().padLeft(2, '0')}:${notification.minute.toString().padLeft(2, '0')}';
+      timeText = _formatFixedTime();
     }
 
     return Container(

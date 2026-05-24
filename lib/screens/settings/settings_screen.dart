@@ -72,11 +72,33 @@ class _SettingsTile extends StatelessWidget {
         onTap = () => _showHijriMethodDialog(context, s);
         break;
       case 'notifications':
+        trailing = Switch.adaptive(
+          value: s.prayerNotificationsEnabled,
+          onChanged: (enabled) async {
+            await s.setPrayerNotificationsEnabled(enabled);
+            if (context.mounted) {
+              context.read<PrayerTimeProvider>().rescheduleNotifications();
+            }
+          },
+          activeTrackColor: cs.primary,
+        );
+        break;
       case 'athkar_reminder':
+        trailing = Switch.adaptive(
+          value: s.athkarRemindersEnabled,
+          onChanged: (enabled) async {
+            await s.setAthkarRemindersEnabled(enabled);
+            if (context.mounted) {
+              context.read<PrayerTimeProvider>().rescheduleNotifications();
+            }
+          },
+          activeTrackColor: cs.primary,
+        );
+        break;
       case 'haptic':
         trailing = Switch.adaptive(
-          value: true,
-          onChanged: (_) {},
+          value: s.hapticEnabled,
+          onChanged: s.setHapticEnabled,
           activeTrackColor: cs.primary,
         );
         break;

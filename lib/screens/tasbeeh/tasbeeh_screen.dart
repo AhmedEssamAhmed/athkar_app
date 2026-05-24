@@ -30,8 +30,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   @override
   void dispose() { _pulseCtrl.dispose(); super.dispose(); }
 
-  void _onTap(TasbeehProvider p) {
-    p.increment();
+  void _onTap(TasbeehProvider p, {required bool haptic}) {
+    p.increment(haptic: haptic);
     _pulseCtrl.forward().then((_) => _pulseCtrl.reverse());
   }
 
@@ -62,7 +62,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
           ScaleTransition(
             scale: _pulse,
             child: GestureDetector(
-              onTap: () => _onTap(t),
+              onTap: () => _onTap(t, haptic: s.hapticEnabled),
               child: SizedBox(
                 width: 200, height: 200,
                 child: Stack(alignment: Alignment.center, children: [

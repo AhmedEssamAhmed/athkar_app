@@ -254,18 +254,34 @@ class PrayerTimeProvider extends ChangeNotifier {
     if (_prayerService.ishaTime != null)
       prayerTimes['isha'] = _prayerService.ishaTime!;
 
-    await _notificationService.schedulePrayerNotifications(prayerTimes);
+    for (final name in prayerTimes.keys) {
+      await _notificationService.cancelNotification('prayer_$name');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final prayerNotificationsEnabled =
+        prefs.getBool(SettingsProvider.prayerNotificationsPrefsKey) ?? true;
+    if (prayerNotificationsEnabled) {
+      await _notificationService.schedulePrayerNotifications(prayerTimes);
+    }
 
     if (sunrise != null) {
       await _notificationService.scheduleDuhaNotification(sunrise);
     }
 
-    if (fajr != null) {
-      await _notificationService.scheduleMorningAthkar(fajr);
-    }
+    await _notificationService.cancelNotification('morning_athkar');
+    await _notificationService.cancelNotification('evening_athkar');
 
-    if (maghrib != null) {
-      await _notificationService.scheduleEveningAthkar(maghrib);
+    final athkarRemindersEnabled =
+        prefs.getBool(SettingsProvider.athkarRemindersPrefsKey) ?? true;
+    if (athkarRemindersEnabled) {
+      if (fajr != null) {
+        await _notificationService.scheduleMorningAthkar(fajr);
+      }
+
+      if (maghrib != null) {
+        await _notificationService.scheduleEveningAthkar(maghrib);
+      }
     }
 
     if (maghrib != null && fajr != null) {

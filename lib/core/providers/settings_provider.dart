@@ -16,17 +16,26 @@ class SettingsProvider extends ChangeNotifier {
   static const _keyLocale = 'locale';
   static const _keyOnboarded = 'is_onboarded';
   static const _keyHijriMethod = 'hijri_method';
+  static const _keyHapticEnabled = 'haptic_enabled';
+  static const prayerNotificationsPrefsKey = 'prayer_notifications_enabled';
+  static const athkarRemindersPrefsKey = 'athkar_reminders_enabled';
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale _locale = const Locale('ar');
   bool _isOnboarded = false;
   HijriCalendarMethod _hijriMethod = HijriCalendarMethod.ummAlQura;
+  bool _hapticEnabled = true;
+  bool _prayerNotificationsEnabled = true;
+  bool _athkarRemindersEnabled = true;
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
   bool get isArabic => _locale.languageCode == 'ar';
   bool get isOnboarded => _isOnboarded;
   HijriCalendarMethod get hijriMethod => _hijriMethod;
+  bool get hapticEnabled => _hapticEnabled;
+  bool get prayerNotificationsEnabled => _prayerNotificationsEnabled;
+  bool get athkarRemindersEnabled => _athkarRemindersEnabled;
   TextDirection get textDirection =>
       isArabic ? TextDirection.rtl : TextDirection.ltr;
 
@@ -57,6 +66,11 @@ class SettingsProvider extends ChangeNotifier {
         orElse: () => HijriCalendarMethod.ummAlQura,
       );
     }
+
+    _hapticEnabled = prefs.getBool(_keyHapticEnabled) ?? true;
+    _prayerNotificationsEnabled =
+        prefs.getBool(prayerNotificationsPrefsKey) ?? true;
+    _athkarRemindersEnabled = prefs.getBool(athkarRemindersPrefsKey) ?? true;
 
     notifyListeners();
   }
@@ -101,5 +115,26 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyHijriMethod, method.name);
+  }
+
+  Future<void> setHapticEnabled(bool enabled) async {
+    _hapticEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyHapticEnabled, enabled);
+  }
+
+  Future<void> setPrayerNotificationsEnabled(bool enabled) async {
+    _prayerNotificationsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(prayerNotificationsPrefsKey, enabled);
+  }
+
+  Future<void> setAthkarRemindersEnabled(bool enabled) async {
+    _athkarRemindersEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(athkarRemindersPrefsKey, enabled);
   }
 }

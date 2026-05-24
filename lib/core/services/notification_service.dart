@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -190,47 +191,24 @@ class NotificationService {
   Future<List<ScheduledNotification>> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(_prefsKey) ?? [];
-    return data
-        .map((e) => ScheduledNotification.fromJson(
-            Map<String, dynamic>.from(_decodeJsonString(e))))
-        .toList();
+    final notifications = <ScheduledNotification>[];
+
+    for (final item in data) {
+      try {
+        final json = jsonDecode(item) as Map<String, dynamic>;
+        notifications.add(ScheduledNotification.fromJson(json));
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return notifications;
   }
 
   Future<void> saveNotifications(List<ScheduledNotification> notifications) async {
     final prefs = await SharedPreferences.getInstance();
-    final data = notifications.map((n) => _encodeJsonMap(n.toJson())).toList();
+    final data = notifications.map((n) => jsonEncode(n.toJson())).toList();
     await prefs.setStringList(_prefsKey, data);
-  }
-
-  String _encodeJsonMap(Map<String, dynamic> map) {
-    return map.entries.map((e) => '${e.key}:${e.value}').join(',');
-  }
-
-  Map<String, dynamic> _decodeJsonString(String str) {
-    final map = <String, dynamic>{};
-    for (final part in str.split(',')) {
-      final kv = part.split(':');
-      if (kv.length >= 2) {
-        final key = kv[0];
-        final value = kv.sublist(1).join(':');
-        if (value == 'true') {
-          map[key] = true;
-        } else if (value == 'false') {
-          map[key] = false;
-        } else if (int.tryParse(value) != null) {
-          map[key] = int.parse(value);
-        } else if (value.startsWith('[') && value.endsWith(']')) {
-          map[key] = value
-              .substring(1, value.length - 1)
-              .split(',')
-              .map((e) => int.parse(e.trim()))
-              .toList();
-        } else {
-          map[key] = value;
-        }
-      }
-    }
-    return map;
   }
 
   Future<void> schedulePrayerNotifications(
@@ -457,7 +435,7 @@ class NotificationService {
     notifications.add(notification);
     await saveNotifications(notifications);
 
-    await _scheduleDaily(
+    await _schedulePersonalDaily(
       id: _hashString('personal_$id'),
       titleEn: titleEn,
       titleAr: titleAr,
@@ -495,7 +473,7 @@ class NotificationService {
     ));
     await saveNotifications(notifications);
 
-    await _scheduleDaily(
+    await _schedulePersonalDaily(
       id: _hashString('personal_$id'),
       titleEn: titleEn,
       titleAr: titleAr,
@@ -517,6 +495,65 @@ class NotificationService {
 
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
+  }
+
+  Future<void> _schedulePersonalDaily({
+    required int id,
+    required String titleEn,
+    required String titleAr,
+    String bodyEn = '',
+    String bodyAr = '',
+    required int hour,
+    required int minute,
+  }) async {
+    await init();
+    await requestPermissions();
+
+    if (Platform.isAndroid) {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestNotificationsPermission();
+      await android?.requestExactAlarmsPermission();
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final isAr = prefs.getString('locale') == 'ar';
+    final title = isAr ? titleAr : titleEn;
+    final body = isAr ? bodyAr : bodyEn;
+
+    final now = DateTime.now();
+    var target = DateTime(now.year, now.month, now.day, hour, minute);
+    if (!target.isAfter(now)) {
+      target = target.add(const Duration(days: 1));
+    }
+
+    final scheduledDate = tz.TZDateTime.from(target, tz.local);
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'athkar_notifications',
+          'Athkar Notifications',
+          channelDescription: 'General app notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: 'titleAr:$titleAr,bodyAr:$bodyAr',
+    );
   }
 
   Future<void> _scheduleDaily({
