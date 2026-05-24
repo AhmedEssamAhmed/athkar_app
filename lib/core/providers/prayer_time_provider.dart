@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -89,12 +90,13 @@ class PrayerTimeProvider extends ChangeNotifier {
         _prayerService.setCoordinates(position.latitude, position.longitude);
         await prefs.setDouble('user_lat', position.latitude);
         await prefs.setDouble('user_lng', position.longitude);
-        _locationName =
-            '${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}';
+        _locationName = await _resolveLocationName(
+          position.latitude,
+          position.longitude,
+        );
       } else if (savedLat != null && savedLng != null) {
         _prayerService.setCoordinates(savedLat, savedLng);
-        _locationName =
-            '${savedLat.toStringAsFixed(2)}, ${savedLng.toStringAsFixed(2)}';
+        _locationName = await _resolveLocationName(savedLat, savedLng);
       } else {
         _prayerService.setDefaultLocation();
         _locationName = _prayerService.getCityName();
@@ -314,10 +316,40 @@ class PrayerTimeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('user_lat', lat);
     await prefs.setDouble('user_lng', lng);
-    _locationName = '${lat.toStringAsFixed(2)}, ${lng.toStringAsFixed(2)}';
+    _locationName = await _resolveLocationName(lat, lng);
     _updatePrayerTimes();
     await _scheduleAllNotifications();
     notifyListeners();
+  }
+
+  Future<String> _resolveLocationName(double lat, double lng) async {
+    final fallback = '${lat.toStringAsFixed(2)}, ${lng.toStringAsFixed(2)}';
+
+    try {
+      final places = await placemarkFromCoordinates(lat, lng);
+      if (places.isEmpty) return fallback;
+
+      final place = places.first;
+      final city = [
+        place.locality,
+        place.subAdministrativeArea,
+        place.administrativeArea,
+        place.country,
+      ].firstWhere(
+        (value) => value != null && value.trim().isNotEmpty,
+        orElse: () => null,
+      );
+      final country = place.country;
+
+      if (city == null) return fallback;
+      if (country == null || country.trim().isEmpty || city == country) {
+        return city;
+      }
+
+      return '$city, $country';
+    } catch (_) {
+      return fallback;
+    }
   }
 
   Future<void> updateHijriMethod(HijriCalendarMethod method) async {

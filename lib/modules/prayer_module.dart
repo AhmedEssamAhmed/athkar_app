@@ -45,6 +45,9 @@ class PrayerData {
   static const double defaultLongitude = 30.4682;
   static const String defaultLocationName = 'Damanhur, Egypt';
 
+  // Legacy helper. PrayerTimeProvider and PrayerTimeService are the current
+  // source of truth for prayer time calculation in the app.
+  @Deprecated('Use PrayerTimeProvider/PrayerTimeService instead.')
   static List<PrayerTime> todayPrayers({
     required double latitude,
     required double longitude,
@@ -102,6 +105,9 @@ class PrayerData {
     return currentIndex;
   }
 
+  // Legacy helper. PrayerTimeProvider and PrayerTimeService are the current
+  // source of truth for Hijri date calculation in the app.
+  @Deprecated('Use PrayerTimeProvider/PrayerTimeService instead.')
   static HijriDate todayHijri() {
     // Temporary until you implement real Hijri calculation later.
     return const HijriDate(

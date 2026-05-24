@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:noor_athkar/core/services/prayer_time_service.dart';
 import 'package:noor_athkar/modules/prayer_module.dart';
 import 'package:noor_athkar/modules/notifications_module.dart';
 import 'package:noor_athkar/core/services/notification_service.dart';
@@ -30,14 +31,15 @@ void main() {
       expect(hijri.formattedAr, '15 رمضان 1447 هـ');
     });
 
-    test('PrayerData returns prayers', () {
-      final prayers = PrayerData.todayPrayers(
-        latitude: PrayerData.defaultLatitude,
-        longitude: PrayerData.defaultLongitude,
-      );
-      expect(prayers.length, 6);
-      expect(prayers.first.name, 'Fajr');
-      expect(prayers.last.name, 'Isha');
+    test('PrayerTimeService calculates prayer times', () {
+      final service = PrayerTimeService()..setDefaultLocation();
+
+      expect(service.fajrTime, isNotNull);
+      expect(service.sunriseTime, isNotNull);
+      expect(service.dhuhrTime, isNotNull);
+      expect(service.asrTime, isNotNull);
+      expect(service.maghribTime, isNotNull);
+      expect(service.ishaTime, isNotNull);
     });
   });
 

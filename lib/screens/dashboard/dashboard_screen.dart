@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
-import '../../modules/prayer_module.dart';
 import '../../main.dart';
 import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
 import '../reminders/reminders_screen.dart';
+import '../../modules/prayer_module.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,88 +20,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String _locationName = PrayerData.defaultLocationName;
-  bool _isLoadingLocation = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserLocation();
-  }
-
-  Future<void> _loadUserLocation() async {
-    try {
-      final position = await _determinePosition();
-
-      // Start with coordinates as fallback
-      String locationName = '${position.latitude.toStringAsFixed(3)}, '
-          '${position.longitude.toStringAsFixed(3)}';
-
-      // Try reverse geocoding for a friendly city name
-      try {
-        final places = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (places.isNotEmpty) {
-          final place = places.first;
-          final city = place.locality?.isNotEmpty == true
-              ? place.locality
-              : place.administrativeArea;
-          final country = place.country;
-          locationName = [
-            if (city != null && city.isNotEmpty) city,
-            if (country != null && country.isNotEmpty) country,
-          ].join(', ');
-        }
-      } catch (_) {
-        // Keep coordinates if reverse geocoding fails
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        _locationName = locationName;
-        _isLoadingLocation = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        _locationName = PrayerData.defaultLocationName;
-        _isLoadingLocation = false;
-      });
-    }
-  }
-
-  Future<Position> _determinePosition() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    var permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permission denied.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission permanently denied.');
-    }
-
-    return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
@@ -134,8 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _GreetingHeader(
                       isArabic: isAr,
                       hijri: hijri,
-                      isLoadingLocation: _isLoadingLocation,
-                      locationName: _locationName,
+                      isLoadingLocation: prayerProvider.isLoading,
+                      locationName: prayerProvider.locationName,
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
                     _CurrentPrayerCard(prayers: prayers, isArabic: isAr),
