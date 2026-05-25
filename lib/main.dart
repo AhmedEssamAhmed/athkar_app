@@ -29,10 +29,6 @@ void main() async {
   await settingsProvider.init();
 
   final prayerTimeProvider = PrayerTimeProvider();
-  await prayerTimeProvider.init();
-
-  final notificationService = NotificationService();
-  await notificationService.init();
 
   runApp(
     MultiProvider(
@@ -44,6 +40,9 @@ void main() async {
       child: const NoorAthkarApp(),
     ),
   );
+
+  prayerTimeProvider.init();
+  NotificationService().init();
 }
 
 class NoorAthkarApp extends StatelessWidget {

@@ -29,19 +29,19 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _logoCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900));
+        vsync: this, duration: const Duration(milliseconds: 500));
     _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
         CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
     _logoOpacity = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
 
     _textCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+        vsync: this, duration: const Duration(milliseconds: 400));
     _textOpacity = CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn);
     _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
         .animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
 
     _subtitleCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
+        vsync: this, duration: const Duration(milliseconds: 300));
     _subtitleOpacity =
         CurvedAnimation(parent: _subtitleCtrl, curve: Curves.easeIn);
 
@@ -49,13 +49,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _runSequence() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 250));
     _textCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
     _subtitleCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     _navigate();
   }

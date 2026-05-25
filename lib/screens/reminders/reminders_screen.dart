@@ -1,14 +1,16 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/widgets/decorative_background.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
 import '../../core/services/notification_service.dart';
 import '../../modules/notifications_module.dart';
+import 'personal_reminders_screen.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -21,14 +23,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   late List<NotificationPreference> _prefs;
   final NotificationService _notificationService = NotificationService();
-  List<ScheduledNotification> _personalNotifications = [];
 
   @override
   void initState() {
     super.initState();
     _prefs = NotificationData.defaults();
     _loadReminderToggleStates();
-    _loadPersonalNotifications();
   }
 
   Future<void> _loadReminderToggleStates() async {
@@ -67,17 +67,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
     };
   }
 
-  Future<void> _loadPersonalNotifications() async {
-    final notifications = await _notificationService.getNotifications();
-    if (!mounted) return;
-
-    setState(() {
-      _personalNotifications = notifications
-          .where((n) => n.category == NotificationCategory.personal)
-          .toList();
-    });
-  }
-
   Future<void> _toggle(int index) async {
     final pref = _prefs[index];
     final newState = !pref.isEnabled;
@@ -106,78 +95,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
     );
   }
 
-  void _addPersonalNotification() {
-    _showDialog(existing: null);
-  }
-
-  void _editPersonalNotification(ScheduledNotification existing) {
-    _showDialog(existing: existing);
-  }
-
-  void _showDialog({ScheduledNotification? existing}) {
-    final isAr = context.read<SettingsProvider>().isArabic;
-    showDialog(
-      context: context,
-      builder: (ctx) => _PersonalNotificationDialog(
-        existing: existing,
-        isAr: isAr,
-        onSaved: (titleEn, titleAr, hour, minute, basePrayer, minutesAfterPrayer, isBeforePrayer) async {
-          final id = existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-          int actualHour = hour;
-          int actualMinute = minute;
-
-          if (basePrayer != null && minutesAfterPrayer != null) {
-            final provider = context.read<PrayerTimeProvider>();
-            final prayerTimes = <String, DateTime>{};
-            if (provider.fajrTime != null) prayerTimes['fajr'] = provider.fajrTime!;
-            if (provider.dhuhrTime != null) prayerTimes['dhuhr'] = provider.dhuhrTime!;
-            if (provider.asrTime != null) prayerTimes['asr'] = provider.asrTime!;
-            if (provider.maghribTime != null) prayerTimes['maghrib'] = provider.maghribTime!;
-            if (provider.ishaTime != null) prayerTimes['isha'] = provider.ishaTime!;
-
-            final prayerTime = prayerTimes[basePrayer];
-            if (prayerTime != null) {
-              final offset = isBeforePrayer == true ? -minutesAfterPrayer : minutesAfterPrayer;
-              final totalMinutes = prayerTime.hour * 60 + prayerTime.minute + offset;
-              actualHour = ((totalMinutes % 1440) + 1440) % 1440 ~/ 60;
-              actualMinute = ((totalMinutes % 1440) + 1440) % 1440 % 60;
-            }
-          }
-
-          if (existing != null) {
-            await _notificationService.updatePersonalNotification(
-              id: id,
-              titleEn: titleEn,
-              titleAr: titleAr,
-              hour: actualHour,
-              minute: actualMinute,
-              basePrayer: basePrayer,
-              minutesAfterPrayer: minutesAfterPrayer,
-              isBeforePrayer: isBeforePrayer,
-            );
-          } else {
-            await _notificationService.schedulePersonalNotification(
-              id: id,
-              titleEn: titleEn,
-              titleAr: titleAr,
-              hour: actualHour,
-              minute: actualMinute,
-              basePrayer: basePrayer,
-              minutesAfterPrayer: minutesAfterPrayer,
-              isBeforePrayer: isBeforePrayer,
-            );
-          }
-          await _loadPersonalNotifications();
-        },
-      ),
-    );
-  }
-
-  Future<void> _deletePersonalNotification(String id) async {
-    await _notificationService.deletePersonalNotification('personal_$id');
-    await _loadPersonalNotifications();
-  }
-
   @override
   Widget build(BuildContext context) {
     final isAr = context.watch<SettingsProvider>().isArabic;
@@ -195,107 +112,165 @@ class _RemindersScreenState extends State<RemindersScreen> {
       appBar: AppBar(
         title: Text(isAr ? 'التذكيرات والإشعارات' : 'Reminders & Notifications'),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addPersonalNotification,
-        icon: const Icon(Icons.add),
-        label: Text(isAr ? 'إشعار جديد' : 'New Notification'),
+      body: DecorativeBackground(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          children: [
+            _PersonalRemindersNavCard(isAr: isAr),
+            const SizedBox(height: 28),
+
+            _SectionHeader(
+              icon: Icons.mosque_rounded,
+              title: isAr ? 'تنبيهات الصلاة' : 'Prayer Alerts',
+              count: prayers.length,
+            ),
+            ...prayers.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.wb_sunny_rounded,
+              title: isAr ? 'صلاة الضحى' : 'Duha Prayer',
+              count: duha.length,
+            ),
+            ...duha.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.auto_stories_rounded,
+              title: isAr ? 'تذكير بالأذكار' : 'Athkar Reminders',
+              count: athkar.length,
+            ),
+            ...athkar.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.nights_stay_rounded,
+              title: isAr ? 'أوقات الليل' : 'Night Times',
+              count: nightTimes.length,
+            ),
+            ...nightTimes.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.free_breakfast_rounded,
+              title: isAr ? 'تذكير الصيام' : 'Fasting Reminders',
+              count: fasting.length,
+            ),
+            ...fasting.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.brightness_5_rounded,
+              title: isAr ? 'الأيام البيض' : 'White Days',
+              count: whiteDays.length,
+            ),
+            ...whiteDays.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.menu_book_rounded,
+              title: isAr ? 'سورة الكهف' : 'Surat Al-Kahf',
+              count: surahKahf.length,
+            ),
+            ...surahKahf.map((p) => _toggleTile(p, isAr)),
+            const SizedBox(height: 24),
+
+            _SectionHeader(
+              icon: Icons.celebration_rounded,
+              title: isAr ? 'دعاء دخول الشهر' : 'Month Entrance Dua',
+              count: monthEntrance.length,
+            ),
+            ...monthEntrance.map((p) => _toggleTile(p, isAr)),
+
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTheme.marginMobile),
+    );
+  }
+
+  Widget _toggleTile(NotificationPreference pref, bool isAr) {
+    final idx = _prefs.indexOf(pref);
+    return _ReminderTile(
+      pref: pref,
+      isAr: isAr,
+      onToggle: () => _toggle(idx),
+      onTry: () => _tryNotification(pref),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section Header
+// ─────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+  const _SectionHeader({required this.icon, required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
         children: [
-          _SectionHeader(title: isAr ? 'إشعارات شخصية' : 'Personal Notifications'),
-          ..._personalNotifications.map((n) => _PersonalNotificationTile(
-            notification: n,
-            isAr: isAr,
-            onDelete: () => _deletePersonalNotification(n.id),
-            onEdit: () => _editPersonalNotification(n),
-          )),
-          const SizedBox(height: AppTheme.spaceSm),
-          _AddPersonalTile(isAr: isAr, onTap: _addPersonalNotification),
-          const SizedBox(height: AppTheme.spaceLg),
-
-          _SectionHeader(title: isAr ? 'تنبيهات الصلاة' : 'Prayer Alerts'),
-          ...prayers.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'صلاة الضحى' : 'Duha Prayer'),
-          ...duha.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'تذكير بالأذكار' : 'Athkar Reminders'),
-          ...athkar.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'أوقات الليل' : 'Night Times'),
-          ...nightTimes.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'تذكير الصيام' : 'Fasting Reminders'),
-          ...fasting.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'الأيام البيض' : 'White Days'),
-          ...whiteDays.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'سورة الكهف' : 'Surat Al-Kahf'),
-          ...surahKahf.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-          const SizedBox(height: AppTheme.spaceMd),
-
-          _SectionHeader(title: isAr ? 'دعاء دخول الشهر' : 'Month Entrance Dua'),
-          ...monthEntrance.map((p) => _ReminderTile(
-              pref: p,
-              isAr: isAr,
-              onToggle: () => _toggle(_prefs.indexOf(p)),
-              onTry: () => _tryNotification(p))),
-
-          const SizedBox(height: AppTheme.spaceLg),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: cs.primary.withAlpha(18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: cs.primary),
+          ),
+          const SizedBox(width: 10),
+          Text(title, style: AppTypography.titleLarge),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.onSurface.withAlpha(10),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Text(
+              '$count',
+              style: AppTypography.labelMedium.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
+// ─────────────────────────────────────────────
+// Reminder Toggle Tile
+// ─────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: AppTypography.titleLarge),
-    );
-  }
-}
+const _reminderIconMap = <String, IconData>{
+  'fajr_alert': Icons.wb_sunny_rounded,
+  'sunrise_alert': Icons.sunny,
+  'dhuhr_alert': Icons.wb_cloudy_rounded,
+  'asr_alert': Icons.cloud_rounded,
+  'maghrib_alert': Icons.nightlight_round,
+  'isha_alert': Icons.nights_stay_rounded,
+  'duha_alert': Icons.wb_sunny_rounded,
+  'morning_athkar': Icons.wb_sunny_outlined,
+  'evening_athkar': Icons.nightlight_round,
+  'midnight': Icons.nights_stay_rounded,
+  'last_third': Icons.star_rounded,
+  'fourth_sixth': Icons.star_border,
+  'fasting_monday': Icons.free_breakfast_rounded,
+  'fasting_thursday': Icons.free_breakfast_rounded,
+  'white_days': Icons.brightness_5_rounded,
+  'surah_kahf': Icons.menu_book_rounded,
+  'month_entrance': Icons.celebration_rounded,
+};
 
 class _ReminderTile extends StatelessWidget {
   final NotificationPreference pref;
@@ -312,134 +287,82 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final icon = _reminderIconMap[pref.id] ?? Icons.notifications_rounded;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: cs.outlineVariant.withAlpha(60), width: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withAlpha(50), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(6),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: pref.isEnabled
+                ? cs.primary.withAlpha(18)
+                : cs.onSurface.withAlpha(8),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: pref.isEnabled ? cs.primary : cs.onSurface.withAlpha(80),
+          ),
+        ),
+        const SizedBox(width: 14),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(isAr ? pref.titleAr : pref.titleEn, style: AppTypography.bodyLarge),
-          ]),
+          child: Text(
+            isAr ? pref.titleAr : pref.titleEn,
+            style: AppTypography.bodyLarge.copyWith(
+              fontWeight: FontWeight.w600,
+              color: pref.isEnabled ? cs.onSurface : cs.onSurface.withAlpha(120),
+            ),
+          ),
         ),
         TextButton(
           onPressed: onTry,
-          child: Text(isAr ? 'تجربة' : 'Try'),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: cs.primary.withAlpha(180),
+          ),
+          child: Text(
+            isAr ? 'تجربة' : 'Try',
+            style: AppTypography.labelLarge,
+          ),
         ),
         Switch.adaptive(
           value: pref.isEnabled,
           onChanged: (_) => onToggle(),
-          activeTrackColor: cs.primary,
+          activeTrackColor: cs.primary.withAlpha(100),
+          activeThumbColor: Colors.white,
+          inactiveThumbColor: cs.onSurface.withAlpha(100),
+          inactiveTrackColor: cs.onSurface.withAlpha(25),
         ),
       ]),
     );
   }
 }
 
-const _prayerOptions = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+// ─────────────────────────────────────────────
+// Personal Reminders Nav Card
+// ─────────────────────────────────────────────
 
-const _prayerNames = {
-  'fajr': ('Fajr', 'الفجر'),
-  'dhuhr': ('Dhuhr', 'الظهر'),
-  'asr': ('Asr', 'العصر'),
-  'maghrib': ('Maghrib', 'المغرب'),
-  'isha': ('Isha', 'العشاء'),
-};
-
-class _PersonalNotificationTile extends StatelessWidget {
-  final ScheduledNotification notification;
+class _PersonalRemindersNavCard extends StatelessWidget {
   final bool isAr;
-  final VoidCallback onDelete;
-  final VoidCallback onEdit;
-  const _PersonalNotificationTile({
-    required this.notification,
-    required this.isAr,
-    required this.onDelete,
-    required this.onEdit,
-  });
-
-  String _formatFixedTime() {
-    final hour = notification.hour;
-    final minute = notification.minute;
-    if (hour == null || minute == null) return '--:--';
-
-    final hour12 = hour == 0
-        ? 12
-        : hour > 12
-            ? hour - 12
-            : hour;
-    final period = hour < 12 ? (isAr ? 'صباحاً' : 'AM') : (isAr ? 'مساءً' : 'PM');
-    return '$hour12:${minute.toString().padLeft(2, '0')} $period';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    String timeText;
-    if (notification.basePrayer != null && notification.minutesAfterPrayer != null) {
-      final prayerName = _prayerNames[notification.basePrayer];
-      final mins = notification.minutesAfterPrayer!;
-      final before = notification.isBeforePrayer == true;
-      if (isAr) {
-        timeText = before
-            ? 'قبل $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}'
-            : 'بعد $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}';
-      } else {
-        timeText = before
-            ? '$mins min before ${prayerName?.$1 ?? notification.basePrayer}'
-            : '$mins min after ${prayerName?.$1 ?? notification.basePrayer}';
-      }
-    } else {
-      timeText = _formatFixedTime();
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: cs.outlineVariant.withAlpha(60), width: 0.5),
-      ),
-      child: Row(children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: cs.tertiaryContainer.withAlpha(60),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.person_rounded, color: cs.tertiary, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(isAr ? notification.titleAr : notification.titleEn, style: AppTypography.bodyLarge),
-            Text(timeText, style: AppTypography.labelMedium.copyWith(color: cs.primary)),
-          ]),
-        ),
-        IconButton(
-          icon: Icon(Icons.edit_outlined, color: cs.onSurfaceVariant, size: 20),
-          onPressed: onEdit,
-        ),
-        IconButton(
-          icon: Icon(Icons.delete_outline, color: cs.error, size: 20),
-          onPressed: onDelete,
-        ),
-      ]),
-    );
-  }
-}
-
-class _AddPersonalTile extends StatelessWidget {
-  final bool isAr;
-  final VoidCallback onTap;
-  const _AddPersonalTile({required this.isAr, required this.onTap});
+  const _PersonalRemindersNavCard({required this.isAr});
 
   @override
   Widget build(BuildContext context) {
@@ -447,242 +370,86 @@ class _AddPersonalTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: cs.outlineVariant.withAlpha(60), width: 0.5),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_circle_outline, color: cs.primary),
-              const SizedBox(width: 8),
-              Text(
-                isAr ? 'إضافة إشعار شخصي' : 'Add Personal Notification',
-                style: AppTypography.bodyLarge.copyWith(color: cs.primary),
-              ),
-            ],
-          ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PersonalRemindersScreen()),
         ),
-      ),
-    );
-  }
-}
-
-class _PersonalNotificationDialog extends StatefulWidget {
-  final ScheduledNotification? existing;
-  final bool isAr;
-  final void Function(
-    String titleEn,
-    String titleAr,
-    int hour,
-    int minute,
-    String? basePrayer,
-    int? minutesAfterPrayer,
-    bool? isBeforePrayer,
-  ) onSaved;
-
-  const _PersonalNotificationDialog({
-    this.existing,
-    required this.isAr,
-    required this.onSaved,
-  });
-
-  @override
-  State<_PersonalNotificationDialog> createState() => _PersonalNotificationDialogState();
-}
-
-class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog> {
-  final _titleController = TextEditingController();
-  bool _usePrayerTime = false;
-  String _selectedPrayer = 'fajr';
-  bool _isBeforePrayer = false;
-  int _offsetMinutes = 15;
-  TimeOfDay _fixedTime = TimeOfDay.now();
-
-  @override
-  void initState() {
-    super.initState();
-    final existing = widget.existing;
-    if (existing != null) {
-      if (widget.isAr) {
-        _titleController.text = existing.titleAr;
-      } else {
-        _titleController.text = existing.titleEn;
-      }
-      if (existing.basePrayer != null) {
-        _usePrayerTime = true;
-        _selectedPrayer = existing.basePrayer!;
-        _offsetMinutes = existing.minutesAfterPrayer ?? 15;
-        _isBeforePrayer = existing.isBeforePrayer ?? false;
-      } else {
-        _fixedTime = TimeOfDay(hour: existing.hour ?? 0, minute: existing.minute ?? 0);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isAr = widget.isAr;
-
-    return AlertDialog(
-      title: Text(widget.existing != null
-          ? (isAr ? 'تعديل الإشعار' : 'Edit Notification')
-          : (isAr ? 'إشعار شخصي جديد' : 'New Personal Notification')),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                labelText: isAr ? 'العنوان' : 'Title',
-                border: const OutlineInputBorder(),
-              ),
-              textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<bool>(
-                    title: Text(isAr ? 'وقت محدد' : 'Fixed Time', style: AppTypography.bodyMedium),
-                    value: false,
-                    groupValue: _usePrayerTime,
-                    onChanged: (v) => setState(() => _usePrayerTime = v!),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<bool>(
-                    title: Text(isAr ? 'حسب الصلاة' : 'By Prayer', style: AppTypography.bodyMedium),
-                    value: true,
-                    groupValue: _usePrayerTime,
-                    onChanged: (v) => setState(() => _usePrayerTime = v!),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                  ),
-                ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                cs.primary.withAlpha(25),
+                AppColors.gold.withAlpha(15),
               ],
             ),
-            if (_usePrayerTime) ...[
-              DropdownButtonFormField<String>(
-                value: _selectedPrayer,
-                decoration: InputDecoration(
-                  labelText: isAr ? 'الصلاة' : 'Prayer',
-                  border: const OutlineInputBorder(),
+            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+            border: Border.all(
+              color: cs.primary.withAlpha(20),
+              width: 0.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [cs.primary, cs.primary.withAlpha(200)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.primary.withAlpha(40),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                items: _prayerOptions.map((p) {
-                  final names = _prayerNames[p]!;
-                  return DropdownMenuItem(
-                    value: p,
-                    child: Text(isAr ? names.$2 : names.$1),
-                  );
-                }).toList(),
-                onChanged: (v) => setState(() => _selectedPrayer = v!),
+                child: Icon(Icons.person_rounded, color: Colors.white, size: 26),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SegmentedButton<bool>(
-                      segments: [
-                        ButtonSegment(value: false, label: Text(isAr ? 'بعد' : 'After')),
-                        ButtonSegment(value: true, label: Text(isAr ? 'قبل' : 'Before')),
-                      ],
-                      selected: {_isBeforePrayer},
-                      onSelectionChanged: (v) => setState(() => _isBeforePrayer = v.first),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: isAr ? 'عدد الدقائق' : 'Minutes',
-                        border: const OutlineInputBorder(),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isAr ? 'الإشعارات الشخصية' : 'Personal Reminders',
+                      style: AppTypography.titleLarge.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
-                      keyboardType: TextInputType.number,
-                      controller: TextEditingController(text: _offsetMinutes.toString()),
-                      onChanged: (v) => _offsetMinutes = int.tryParse(v) ?? 0,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(isAr ? 'دقيقة' : 'min', style: AppTypography.bodyMedium),
-                ],
-              ),
-            ] else ...[
-              InkWell(
-                onTap: () async {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: _fixedTime,
-                  );
-                  if (time != null) setState(() => _fixedTime = time);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: cs.outline),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(isAr ? 'وقت الإشعار' : 'Notification Time'),
-                      Text(
-                        _fixedTime.format(context),
-                        style: AppTypography.bodyLarge.copyWith(color: cs.primary),
+                    const SizedBox(height: 2),
+                    Text(
+                      isAr ? 'إدارة الإشعارات المخصصة' : 'Manage your custom notifications',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: cs.onSurfaceVariant,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(100),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: cs.onSurfaceVariant,
+                  size: 16,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(isAr ? 'إلغاء' : 'Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (_titleController.text.isEmpty) return;
-            final title = _titleController.text.trim();
-            widget.onSaved(
-              isAr ? '' : title,
-              isAr ? title : '',
-              _fixedTime.hour,
-              _fixedTime.minute,
-              _usePrayerTime ? _selectedPrayer : null,
-              _usePrayerTime ? _offsetMinutes : null,
-              _usePrayerTime ? _isBeforePrayer : null,
-            );
-            Navigator.pop(context);
-          },
-          child: Text(widget.existing != null
-              ? (isAr ? 'حفظ' : 'Save')
-              : (isAr ? 'إضافة' : 'Add')),
-        ),
-      ],
     );
   }
 }

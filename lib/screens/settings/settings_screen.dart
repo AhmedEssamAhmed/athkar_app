@@ -80,7 +80,10 @@ class _SettingsTile extends StatelessWidget {
               context.read<PrayerTimeProvider>().rescheduleNotifications();
             }
           },
-          activeTrackColor: cs.primary,
+          activeTrackColor: cs.primary.withAlpha(120),
+          activeThumbColor: Colors.white,
+          inactiveThumbColor: cs.onSurface.withAlpha(100),
+          inactiveTrackColor: cs.onSurface.withAlpha(25),
         );
         break;
       case 'athkar_reminder':
@@ -92,14 +95,20 @@ class _SettingsTile extends StatelessWidget {
               context.read<PrayerTimeProvider>().rescheduleNotifications();
             }
           },
-          activeTrackColor: cs.primary,
+          activeTrackColor: cs.primary.withAlpha(120),
+          activeThumbColor: Colors.white,
+          inactiveThumbColor: cs.onSurface.withAlpha(100),
+          inactiveTrackColor: cs.onSurface.withAlpha(25),
         );
         break;
       case 'haptic':
         trailing = Switch.adaptive(
           value: s.hapticEnabled,
           onChanged: s.setHapticEnabled,
-          activeTrackColor: cs.primary,
+          activeTrackColor: cs.primary.withAlpha(120),
+          activeThumbColor: Colors.white,
+          inactiveThumbColor: cs.onSurface.withAlpha(100),
+          inactiveTrackColor: cs.onSurface.withAlpha(25),
         );
         break;
       case 'about':

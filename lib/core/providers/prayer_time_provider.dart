@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/prayer_time_service.dart';
@@ -51,39 +50,33 @@ class PrayerTimeProvider extends ChangeNotifier {
   DateTime? get sunriseTime => _prayerService.sunriseTime;
 
   Future<void> init() async {
-    await _requestLocationPermission();
-    await _loadPrayerTimes();
-  }
+    final prefs = await SharedPreferences.getInstance();
+    final savedLat = prefs.getDouble('user_lat');
+    final savedLng = prefs.getDouble('user_lng');
 
-  Future<void> _requestLocationPermission() async {
-    final status = await Permission.location.status;
-    if (status.isDenied || status.isPermanentlyDenied) {
-      await Permission.location.request();
+    if (savedLat != null && savedLng != null) {
+      _prayerService.setCoordinates(savedLat, savedLng);
+      _updatePrayerTimes();
+      _isLoading = false;
+      notifyListeners();
     }
+
+    _loadPrayerTimes();
   }
 
   Future<void> _loadPrayerTimes() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
     try {
-      LocationPermission permission;
-      bool useLocation = false;
+      final prefs = await SharedPreferences.getInstance();
+      final savedLat = prefs.getDouble('user_lat');
+      final savedLng = prefs.getDouble('user_lng');
 
-      permission = await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
 
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        useLocation = true;
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      final savedLat = prefs.getDouble('user_lat');
-      final savedLng = prefs.getDouble('user_lng');
+      final useLocation = permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
 
       if (useLocation) {
         final position = await Geolocator.getCurrentPosition();
@@ -95,22 +88,28 @@ class PrayerTimeProvider extends ChangeNotifier {
           position.longitude,
         );
       } else if (savedLat != null && savedLng != null) {
-        _prayerService.setCoordinates(savedLat, savedLng);
         _locationName = await _resolveLocationName(savedLat, savedLng);
-      } else {
+      } else if (_isLoading) {
         _prayerService.setDefaultLocation();
         _locationName = _prayerService.getCityName();
       }
 
-      _updatePrayerTimes();
-      await _scheduleAllNotifications();
+      if (_isLoading) {
+        _updatePrayerTimes();
+      }
+
+      _scheduleAllNotifications();
     } catch (e) {
-      _error = e.toString();
-      _prayerService.setDefaultLocation();
-      _updatePrayerTimes();
+      if (_isLoading) {
+        _error = e.toString();
+        _prayerService.setDefaultLocation();
+        _updatePrayerTimes();
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (_isLoading) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 

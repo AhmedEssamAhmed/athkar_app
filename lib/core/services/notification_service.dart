@@ -126,13 +126,44 @@ class NotificationService {
     );
 
     if (Platform.isAndroid) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestNotificationsPermission();
+      await _createNotificationChannels(android);
     }
 
     _initialized = true;
+  }
+
+  Future<void> _createNotificationChannels(
+    AndroidFlutterLocalNotificationsPlugin? android,
+  ) async {
+    if (android == null) return;
+
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'prayer_notifications',
+        'Prayer Notifications',
+        description: 'Prayer time notifications with Athan sound',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('athan'),
+        enableVibration: true,
+        enableLights: true,
+      ),
+    );
+
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'athkar_notifications',
+        'Athkar Notifications',
+        description: 'General app notifications',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+      ),
+    );
   }
 
   void _onNotificationTap(NotificationResponse response) {}
@@ -162,9 +193,7 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
-          sound: isPrayer
-              ? const RawResourceAndroidNotificationSound('athan')
-              : null,
+          fullScreenIntent: isPrayer,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -232,11 +261,11 @@ class NotificationService {
 
       await _scheduleDaily(
         id: _hashString('prayer_$name'),
-      titleEn: names.$1,
-      titleAr: names.$2,
+        titleEn: names.$1,
+        titleAr: names.$2,
         hour: time.hour,
         minute: time.minute,
-        useAthanSound: true,
+        useAthanSound: name != 'sunrise',
       );
     }
   }
@@ -592,9 +621,8 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
-          sound: useAthanSound
-              ? const RawResourceAndroidNotificationSound('athan')
-              : null,
+          fullScreenIntent: useAthanSound,
+          timeoutAfter: useAthanSound ? 45000 : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -647,9 +675,8 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
-          sound: useAthanSound
-              ? const RawResourceAndroidNotificationSound('athan')
-              : null,
+          fullScreenIntent: useAthanSound,
+          timeoutAfter: useAthanSound ? 45000 : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
