@@ -55,9 +55,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       body: SafeArea(
         child: Column(children: [
           const Spacer(),
-          Text(t.currentDhikr,
-              style: AppTypography.arabicDisplay.copyWith(color: cs.primary),
-              textAlign: TextAlign.center),
+              Text(t.currentDhikr,
+                  style: AppTypography.arabicDisplay.copyWith(color: cs.primary, fontSize: 40),
+                  textAlign: TextAlign.center),
           const SizedBox(height: AppTheme.spaceMd),
           ScaleTransition(
             scale: _pulse,
@@ -82,10 +82,10 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('${t.count}',
-                            style: AppTypography.displayLarge.copyWith(
-                                color: t.isComplete ? Colors.white : cs.onPrimaryContainer,
-                                fontSize: 48)),
+                             Text('${t.count}',
+                                 style: AppTypography.displayLarge.copyWith(
+                                     color: t.isComplete ? Colors.white : cs.onPrimaryContainer,
+                                     fontSize: 40)),
                         Text('/ ${t.targetCount}',
                             style: AppTypography.labelMedium.copyWith(
                                 color: (t.isComplete ? Colors.white : cs.onPrimaryContainer).withAlpha(160))),
@@ -110,11 +110,11 @@ class _TasbeehScreenState extends State<TasbeehScreen>
               itemBuilder: (_, i) {
                 final p = TasbeehProvider.presets[i];
                 final sel = t.currentDhikr == p['text'];
-                return ChoiceChip(
-                  label: Text(p['text'] as String,
-                      style: AppTypography.labelMedium.copyWith(
-                          fontFamily: 'Amiri', fontSize: 14,
-                          color: sel ? cs.onPrimary : cs.onSurface)),
+                     return ChoiceChip(
+                       label: Text(p['text'] as String,
+                           style: AppTypography.labelMedium.copyWith(
+                               fontFamily: 'Amiri', fontSize: 12,
+                               color: sel ? cs.onPrimary : cs.onSurface)),
                   selected: sel,
                   selectedColor: cs.primary,
                   backgroundColor: cs.surfaceContainerHighest,

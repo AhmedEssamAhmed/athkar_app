@@ -51,6 +51,7 @@ class _SettingsTile extends StatelessWidget {
         onTap = () async {
           await s.toggleLanguage();
           if (context.mounted) {
+            context.read<PrayerTimeProvider>().setLanguage(isArabic: s.isArabic);
             context.read<PrayerTimeProvider>().rescheduleNotifications();
           }
         };

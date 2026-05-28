@@ -213,72 +213,74 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
                   width: done ? 1.5 : 0.5,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Arabic text
-                  Text(
-                    dhikr.arabicText,
-                    style: AppTypography.arabicBody.copyWith(
-                      color: cs.onSurface,
-                      fontSize: 24,
-                    ),
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: AppTheme.spaceMd),
-
-                  // Translation
-                  if (dhikr.translation.isNotEmpty)
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Arabic text
                     Text(
-                      dhikr.translation,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: cs.onSurfaceVariant,
+                      dhikr.arabicText,
+                      style: AppTypography.arabicBody.copyWith(
+                        color: cs.onSurface,
+                        fontSize: 24,
                       ),
                       textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
                     ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-                  const SizedBox(height: AppTheme.spaceLg),
+                    // Translation
+                    if (dhikr.translation.isNotEmpty)
+                      Text(
+                        dhikr.translation,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
 
-                  // Counter chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: done
-                          ? cs.primary
-                          : AppColors.goldenAccent.withAlpha(30),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                    ),
-                    child: Text(
-                      done ? (isAr ? '✓ تم' : '✓ Done') : '$current / $target',
-                      style: AppTypography.titleLarge.copyWith(
-                        color: done ? cs.onPrimary : AppColors.goldenAccent,
+                    const SizedBox(height: AppTheme.spaceLg),
+
+                    // Counter chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: done
+                            ? cs.primary
+                            : AppColors.goldenAccent.withAlpha(30),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                      ),
+                      child: Text(
+                        done ? (isAr ? '✓ تم' : '✓ Done') : '$current / $target',
+                        style: AppTypography.titleLarge.copyWith(
+                          color: done ? cs.onPrimary : AppColors.goldenAccent,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // Reference
-                  if (dhikr.reference != null)
+                    // Reference
+                    if (dhikr.reference != null)
+                      Text(
+                        dhikr.reference!,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: cs.outline,
+                        ),
+                      ),
+
+                    const SizedBox(height: 8),
                     Text(
-                      dhikr.reference!,
+                      isAr
+                          ? 'اضغط للعد • اسحب للتالي'
+                          : 'Tap to count • Swipe for next',
                       style: AppTypography.labelMedium.copyWith(
-                        color: cs.outline,
+                        color: cs.outline.withAlpha(120),
                       ),
                     ),
-
-                  const SizedBox(height: 8),
-                  Text(
-                    isAr
-                        ? 'اضغط للعد • اسحب للتالي'
-                        : 'Tap to count • Swipe for next',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: cs.outline.withAlpha(120),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

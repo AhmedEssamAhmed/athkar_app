@@ -29,6 +29,7 @@ void main() async {
   await settingsProvider.init();
 
   final prayerTimeProvider = PrayerTimeProvider();
+  prayerTimeProvider.setLanguage(isArabic: settingsProvider.isArabic);
 
   runApp(
     MultiProvider(

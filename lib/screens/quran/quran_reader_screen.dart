@@ -525,9 +525,12 @@ class _JumpDialogState extends State<_JumpDialog> with SingleTickerProviderState
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
-      child: SizedBox(
-        height: 420,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -550,7 +553,7 @@ class _JumpDialogState extends State<_JumpDialog> with SingleTickerProviderState
                 Tab(text: isAr ? 'آية' : 'Ayah'),
               ],
             ),
-            Expanded(
+            Flexible(
               child: TabBarView(
                 controller: _tabCtrl,
                 children: [

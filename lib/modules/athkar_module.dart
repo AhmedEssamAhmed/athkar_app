@@ -62,7 +62,8 @@ class AthkarData {
   // MORNING ATHKAR — أذكار الصباح
   // Time: From dawn until sunrise.
   // ─────────────────────────────────────────────────────────────────────────
-  static List<Dhikr> morningAthkar() => [
+  static List<Dhikr>? _morningCache;
+  static List<Dhikr> morningAthkar() => _morningCache ??= [
         Dhikr(
           id: 'morning_01',
           arabicText:
@@ -222,7 +223,8 @@ class AthkarData {
   // EVENING ATHKAR — أذكار المساء
   // Time: From sunset to the start of Isha time.
   // ─────────────────────────────────────────────────────────────────────────
-  static List<Dhikr> eveningAthkar() => [
+  static List<Dhikr>? _eveningCache;
+  static List<Dhikr> eveningAthkar() => _eveningCache ??= [
         Dhikr(
           id: 'evening_01',
           arabicText:
@@ -357,7 +359,8 @@ class AthkarData {
   // ─────────────────────────────────────────────────────────────────────────
   // SLEEP ATHKAR — أذكار النوم
   // ─────────────────────────────────────────────────────────────────────────
-  static List<Dhikr> sleepAthkar() => [
+  static List<Dhikr>? _sleepCache;
+  static List<Dhikr> sleepAthkar() => _sleepCache ??= [
         Dhikr(
           id: 'sleep_01',
           arabicText:
@@ -480,7 +483,8 @@ class AthkarData {
   // ─────────────────────────────────────────────────────────────────────────
   // AFTER PRAYER ATHKAR — أذكار بعد الصلاة
   // ─────────────────────────────────────────────────────────────────────────
-  static List<Dhikr> afterPrayerAthkar() => [
+  static List<Dhikr>? _afterPrayerCache;
+  static List<Dhikr> afterPrayerAthkar() => _afterPrayerCache ??= [
         Dhikr(
           id: 'prayer_01',
           arabicText: 'أَسْتَغْفِرُ اللَّهَ.',

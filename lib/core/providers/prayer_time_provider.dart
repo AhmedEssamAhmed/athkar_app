@@ -57,11 +57,10 @@ class PrayerTimeProvider extends ChangeNotifier {
     if (savedLat != null && savedLng != null) {
       _prayerService.setCoordinates(savedLat, savedLng);
       _updatePrayerTimes();
-      _isLoading = false;
       notifyListeners();
     }
 
-    _loadPrayerTimes();
+    await _loadPrayerTimes();
   }
 
   Future<void> _loadPrayerTimes() async {
@@ -70,46 +69,107 @@ class PrayerTimeProvider extends ChangeNotifier {
       final savedLat = prefs.getDouble('user_lat');
       final savedLng = prefs.getDouble('user_lng');
 
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
+      final canUseGps = serviceEnabled &&
+          (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always);
 
-      final useLocation = permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always;
+      bool gotPosition = false;
 
-      if (useLocation) {
-        final position = await Geolocator.getCurrentPosition();
-        _prayerService.setCoordinates(position.latitude, position.longitude);
-        await prefs.setDouble('user_lat', position.latitude);
-        await prefs.setDouble('user_lng', position.longitude);
-        _locationName = await _resolveLocationName(
-          position.latitude,
-          position.longitude,
-        );
-      } else if (savedLat != null && savedLng != null) {
-        _locationName = await _resolveLocationName(savedLat, savedLng);
-      } else if (_isLoading) {
-        _prayerService.setDefaultLocation();
-        _locationName = _prayerService.getCityName();
+      if (canUseGps) {
+        // Try last known position first — instant and works indoors
+        try {
+          final lastPos = await Geolocator.getLastKnownPosition();
+          if (lastPos != null) {
+            _prayerService.setCoordinates(lastPos.latitude, lastPos.longitude);
+            await prefs.setDouble('user_lat', lastPos.latitude);
+            await prefs.setDouble('user_lng', lastPos.longitude);
+            _locationName = await _resolveLocationName(
+              lastPos.latitude,
+              lastPos.longitude,
+            );
+            _error = null;
+            gotPosition = true;
+          }
+        } catch (_) {}
+
+        if (!gotPosition) {
+          // Try high accuracy GPS with timeout
+          try {
+            final position = await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+                timeLimit: Duration(seconds: 8),
+              ),
+            ).timeout(const Duration(seconds: 10));
+            _prayerService.setCoordinates(position.latitude, position.longitude);
+            await prefs.setDouble('user_lat', position.latitude);
+            await prefs.setDouble('user_lng', position.longitude);
+            _locationName = await _resolveLocationName(
+              position.latitude,
+              position.longitude,
+            );
+            _error = null;
+            gotPosition = true;
+          } catch (_) {
+            _error = 'GPS couldn\'t get a fix — go outdoors or check GPS';
+            // High accuracy failed — try medium accuracy
+            try {
+              final position = await Geolocator.getCurrentPosition(
+                locationSettings: const LocationSettings(
+                  accuracy: LocationAccuracy.medium,
+                  timeLimit: Duration(seconds: 5),
+                ),
+              );
+              _prayerService.setCoordinates(position.latitude, position.longitude);
+              await prefs.setDouble('user_lat', position.latitude);
+              await prefs.setDouble('user_lng', position.longitude);
+              _locationName = await _resolveLocationName(
+                position.latitude,
+                position.longitude,
+              );
+              _error = null;
+              gotPosition = true;
+            } catch (_) {}
+          }
+        }
+      } else {
+        if (!serviceEnabled) {
+          _error = 'GPS is disabled — enable location in device settings';
+        } else if (permission == LocationPermission.deniedForever) {
+          _error = 'Location permission permanently denied — enable in app settings';
+        } else if (permission == LocationPermission.denied) {
+          _error = 'Location permission denied — grant permission to detect location';
+        }
       }
 
-      if (_isLoading) {
+      if (!gotPosition) {
+        if (savedLat != null && savedLng != null) {
+          _prayerService.setCoordinates(savedLat, savedLng);
+          _locationName = await _resolveLocationName(savedLat, savedLng);
+          _error = 'Using saved location — enable GPS for accurate times';
+        } else {
+          _prayerService.setDefaultLocation();
+          _locationName = _prayerService.getCityName();
+          _error = 'Location unavailable — enable GPS and grant location permission';
+        }
         _updatePrayerTimes();
       }
 
       _scheduleAllNotifications();
     } catch (e) {
-      if (_isLoading) {
-        _error = e.toString();
+      _error = e.toString();
+      if (!_prayerService.isLocationSet) {
         _prayerService.setDefaultLocation();
         _updatePrayerTimes();
       }
     } finally {
-      if (_isLoading) {
-        _isLoading = false;
-        notifyListeners();
-      }
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

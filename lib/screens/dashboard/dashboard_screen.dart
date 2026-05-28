@@ -32,12 +32,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hijri = prayerProvider.hijriDate;
     final prayers = prayerProvider.prayers;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<PrayerTimeProvider>().setLanguage(isArabic: isAr);
-      }
-    });
-
     return Scaffold(
       body: SafeArea(
         child: prayerProvider.isLoading
@@ -56,6 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           hijri: hijri,
                           isLoadingLocation: prayerProvider.isLoading,
                           locationName: prayerProvider.locationName,
+                          error: prayerProvider.error,
+                          onRetry: () => prayerProvider.refresh(),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -334,12 +330,16 @@ class _GreetingHeader extends StatelessWidget {
   final dynamic hijri;
   final bool isLoadingLocation;
   final String locationName;
+  final String? error;
+  final VoidCallback? onRetry;
 
   const _GreetingHeader({
     required this.isArabic,
     required this.hijri,
     required this.isLoadingLocation,
     required this.locationName,
+    this.error,
+    this.onRetry,
   });
 
   String _greeting() {
@@ -405,20 +405,37 @@ class _GreetingHeader extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(Icons.location_on_rounded, size: 15, color: cs.primary),
+              Icon(
+                error != null ? Icons.location_off_rounded : Icons.location_on_rounded,
+                size: 15,
+                color: error != null ? cs.error : cs.primary,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   isLoadingLocation
                       ? (isArabic ? 'جاري تحديد الموقع...' : 'Detecting location...')
-                      : locationName,
+                      : (error ?? locationName),
                   style: AppTypography.bodyMedium.copyWith(
-                    color: cs.primary,
+                    color: error != null ? cs.error : cs.primary,
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
+              if (onRetry != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.refresh_rounded, size: 18,
+                    color: error != null ? cs.error : cs.primary),
+                  onPressed: onRetry,
+                  tooltip: isArabic ? 'تحديث الموقع' : 'Refresh location',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
             ],
           ),
         ],
@@ -479,7 +496,10 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
   String _formatTime(DateTime dt) {
     final hour = dt.hour;
     final m = dt.minute.toString().padLeft(2, '0');
-    final period = hour < 12 ? 'AM' : 'PM';
+    final isArabic = widget.isArabic;
+    final period = hour < 12
+        ? (isArabic ? 'صباحاً' : 'AM')
+        : (isArabic ? 'مساءً' : 'PM');
     final h12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
     return '$h12:$m $period';
   }
@@ -567,42 +587,50 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
           ),
           const SizedBox(height: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isArabic ? current.nameAr : current.name,
-                    style: TextStyle(
-                      fontFamily: isArabic ? 'Amiri' : 'Manrope',
-                      fontSize: isArabic ? 32 : 28,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 1.1,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isArabic ? current.nameAr : current.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: isArabic ? 'Amiri' : 'Manrope',
+                        fontSize: isArabic ? 32 : 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _formatTime(_now),
-                    style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 44,
-                      fontWeight: FontWeight.w300,
-                      color: Colors.white.withAlpha(240),
-                      letterSpacing: 2,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withAlpha(40),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _formatTime(_now),
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 44,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.white.withAlpha(240),
+                          letterSpacing: 2,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withAlpha(40),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
@@ -619,10 +647,14 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          isArabic ? next.nameAr : next.name,
-                          style: AppTypography.labelMedium.copyWith(
-                            color: Colors.white.withAlpha(200),
+                        Flexible(
+                          child: Text(
+                            isArabic ? next.nameAr : next.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.labelMedium.copyWith(
+                              color: Colors.white.withAlpha(200),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -634,7 +666,7 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                       isNegative
                           ? (isArabic ? '--:--' : '--:--')
                           : hours > 0
-                              ? '${hours}h ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
+                              ? '${hours}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
                               : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                       style: const TextStyle(
                         fontFamily: 'Manrope',
@@ -869,28 +901,34 @@ class _SpecialTimesRow extends StatelessWidget {
                       ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            item.time,
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: isDark ? item.color.withAlpha(220) : item.color,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        clipBehavior: Clip.hardEdge,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              item.time,
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: isDark ? item.color.withAlpha(220) : item.color,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            isArabic ? item.labelAr : item.labelEn,
-                            style: AppTypography.labelMedium.copyWith(
-                              color: cs.onSurfaceVariant.withAlpha(isDark ? 160 : 180),
+                            const SizedBox(height: 1),
+                            Text(
+                              isArabic ? item.labelAr : item.labelEn,
+                              style: AppTypography.labelMedium.copyWith(
+                                color: cs.onSurfaceVariant.withAlpha(isDark ? 160 : 180),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1047,13 +1085,15 @@ class _QuickAccessTile extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                isArabic ? item.labelAr : item.labelEn,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.w600,
+                  isArabic ? item.labelAr : item.labelEn,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-              ),
             ],
           ),
         ),

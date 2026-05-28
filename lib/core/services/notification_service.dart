@@ -596,6 +596,13 @@ class NotificationService {
     required int minute,
     bool useAthanSound = false,
   }) async {
+    await init();
+    if (Platform.isAndroid) {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestExactAlarmsPermission();
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final isAr = prefs.getString('locale') == 'ar';
     final title = isAr ? titleAr : titleEn;
@@ -621,8 +628,11 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
+          sound: useAthanSound
+              ? const RawResourceAndroidNotificationSound('athan')
+              : null,
           fullScreenIntent: useAthanSound,
-          timeoutAfter: useAthanSound ? 45000 : null,
+          timeoutAfter: useAthanSound ? 60000 : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geomag/geomag.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -26,9 +27,12 @@ class _QiblaScreenState extends State<QiblaScreen>
   static const double _kaabaLng = 39.8262;
 
   double? _qiblaBearing; // degrees from north to Qibla
-  double _currentHeading = 0; // device heading from north
   double? _userLat;
   double? _userLng;
+
+  double _magneticDeclination = 0.0;
+  double _cumulativeHeading = 0.0;
+  bool _isFirstCompassReading = true;
 
   StreamSubscription<CompassEvent>? _compassSub;
   String _status = 'initializing'; // initializing, ready, no_sensor, no_location, error
@@ -48,6 +52,7 @@ class _QiblaScreenState extends State<QiblaScreen>
       _userLat = (cachedLat as num).toDouble();
       _userLng = (cachedLng as num).toDouble();
       _qiblaBearing = _calculateQiblaBearing(_userLat!, _userLng!);
+      _calculateDeclination();
     }
 
     // Get fresh location
@@ -63,6 +68,22 @@ class _QiblaScreenState extends State<QiblaScreen>
     }
 
     _startCompass();
+  }
+
+  double _smoothCompassReading(double rawHeading) {
+    if (_isFirstCompassReading) {
+      _cumulativeHeading = rawHeading;
+      _isFirstCompassReading = false;
+      return rawHeading;
+    }
+
+    double diff = rawHeading - _cumulativeHeading;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    const double alpha = 0.25;
+    _cumulativeHeading = (_cumulativeHeading + alpha * diff + 360) % 360;
+    return _cumulativeHeading;
   }
 
   Future<void> _getLocation() async {
@@ -113,6 +134,7 @@ class _QiblaScreenState extends State<QiblaScreen>
       _userLat = position.latitude;
       _userLng = position.longitude;
       _qiblaBearing = _calculateQiblaBearing(_userLat!, _userLng!);
+      _calculateDeclination();
 
       // Cache location
       await HiveService.cacheValue('user_lat', _userLat);
@@ -129,11 +151,27 @@ class _QiblaScreenState extends State<QiblaScreen>
     }
   }
 
+  void _calculateDeclination() {
+    if (_userLat != null && _userLng != null) {
+      try {
+        final geoMag = GeoMag();
+        final result = geoMag.calculate(_userLat!, _userLng!, 0.0);
+        _magneticDeclination = result.dec;
+      } catch (e) {
+        _magneticDeclination = 0.0;
+      }
+    }
+  }
+
   void _startCompass() {
     _compassSub = FlutterCompass.events?.listen((event) {
       if (event.heading != null && mounted) {
+        final rawHeading = event.heading!;
+        final trueHeading = (rawHeading + _magneticDeclination + 360) % 360;
+        final smoothed = _smoothCompassReading(trueHeading);
+
         setState(() {
-          _currentHeading = event.heading!;
+          _cumulativeHeading = smoothed;
           if (_qiblaBearing != null) {
             _status = 'ready';
           }
@@ -180,7 +218,9 @@ class _QiblaScreenState extends State<QiblaScreen>
 
     setState(() {
       _status = 'initializing';
-      _currentHeading = 0;
+      _magneticDeclination = 0.0;
+      _cumulativeHeading = 0.0;
+      _isFirstCompassReading = true;
     });
 
     // Re-fetch fresh location
@@ -284,108 +324,94 @@ class _QiblaScreenState extends State<QiblaScreen>
   }
 
   Widget _buildCompass(ColorScheme cs, bool isAr) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile, vertical: 24),
+      child: Column(
+        children: [
+          Text(
+            isAr ? 'وجّه هاتفك نحو الاتجاه المُشار إليه' : 'Point your device in the indicated direction',
+            style: AppTypography.bodyMedium.copyWith(color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppTheme.spaceLg),
 
-    return Column(
-      children: [
-        const Spacer(),
-        // Instruction
-        Text(
-          isAr ? 'وجّه هاتفك نحو الاتجاه المُشار إليه' : 'Point your device in the indicated direction',
-          style: AppTypography.bodyMedium.copyWith(color: cs.onSurfaceVariant),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppTheme.spaceLg),
-
-        // Compass
-        SizedBox(
-          width: 300, height: 300,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Rotating compass dial
-              AnimatedRotation(
-                turns: -_currentHeading / 360,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                child: _CompassDial(cs: cs, isAr: isAr),
-              ),
-
-              // Qibla needle
-              AnimatedRotation(
-                turns: ((_qiblaBearing ?? 0) - _currentHeading) / 360,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                child: SizedBox(
-                  width: 300, height: 300,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.navigation_rounded, size: 40, color: cs.primary),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              borderRadius: BorderRadius.circular(12),
+          // Compass
+          SizedBox(
+            width: 300, height: 300,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Transform.rotate(
+                  angle: -_cumulativeHeading * math.pi / 180,
+                  child: _CompassDial(cs: cs, isAr: isAr),
+                ),
+                Transform.rotate(
+                  angle: ((_qiblaBearing ?? 0) - _cumulativeHeading) * math.pi / 180,
+                  child: SizedBox(
+                    width: 300, height: 300,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.navigation_rounded, size: 40, color: cs.primary),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: cs.primary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                isAr ? 'القبلة' : 'Qibla',
+                                style: AppTypography.labelMedium.copyWith(color: cs.onPrimary, fontSize: 11),
+                              ),
                             ),
-                            child: Text(
-                              isAr ? 'القبلة' : 'Qibla',
-                              style: AppTypography.labelMedium.copyWith(color: cs.onPrimary, fontSize: 11),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-
-              // Kaaba center icon
-              Container(
-                width: 52, height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.goldenAccent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: AppColors.goldenAccent.withAlpha(60), blurRadius: 20),
-                  ],
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.goldenAccent,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: AppColors.goldenAccent.withAlpha(60), blurRadius: 20),
+                    ],
+                  ),
+                  child: const Icon(Icons.adjust_rounded, color: Colors.white, size: 26),
                 ),
-                child: const Icon(Icons.adjust_rounded, color: Colors.white, size: 26),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: AppTheme.spaceMd),
-        // Bearing info
-        Text(
-          '${_qiblaBearing?.toStringAsFixed(1) ?? "---"}°',
-          style: AppTypography.headlineLarge.copyWith(color: cs.primary),
-        ),
-        Text(
-          _qiblaBearing != null
-              ? _getDirectionLabel(_qiblaBearing!, isAr)
-              : '---',
-          style: AppTypography.bodyMedium.copyWith(color: cs.onSurfaceVariant),
-        ),
-
-        if (_userLat != null && _userLng != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.spaceMd),
           Text(
-            '${_userLat!.toStringAsFixed(4)}°, ${_userLng!.toStringAsFixed(4)}°',
-            style: AppTypography.labelMedium.copyWith(color: cs.outline),
+            '${_qiblaBearing?.toStringAsFixed(1) ?? "---"}°',
+            style: AppTypography.headlineLarge.copyWith(color: cs.primary),
           ),
-        ],
+          Text(
+            _qiblaBearing != null
+                ? _getDirectionLabel(_qiblaBearing!, isAr)
+                : '---',
+            style: AppTypography.bodyMedium.copyWith(color: cs.onSurfaceVariant),
+          ),
 
-        const Spacer(),
+          if (_userLat != null && _userLng != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${_userLat!.toStringAsFixed(4)}°, ${_userLng!.toStringAsFixed(4)}°',
+              style: AppTypography.labelMedium.copyWith(color: cs.outline),
+            ),
+          ],
 
-        // Recalibrate button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile),
-          child: SizedBox(
+          const SizedBox(height: 24),
+
+          SizedBox(
             width: double.infinity,
             height: 48,
             child: OutlinedButton.icon(
@@ -399,13 +425,9 @@ class _QiblaScreenState extends State<QiblaScreen>
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Calibration tip
-        Padding(
-          padding: const EdgeInsets.fromLTRB(AppTheme.marginMobile, 0, AppTheme.marginMobile, AppTheme.marginMobile),
-          child: Container(
+          Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest.withAlpha(80),
@@ -426,8 +448,9 @@ class _QiblaScreenState extends State<QiblaScreen>
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+        ],
+      ),
     );
   }
 }
