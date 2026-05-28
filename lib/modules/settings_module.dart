@@ -40,14 +40,6 @@ class SettingsData {
       type: SettingsType.selector,
     ),
     SettingsItem(
-      key: 'hijri_calendar',
-      titleEn: 'Hijri Calendar Method',
-      titleAr: 'طريقة التقويم الهجري',
-      subtitleEn: 'Umm al-Qura, Egyptian, or Islamic',
-      subtitleAr: 'أم القرى، المصري، أو الإسلامي',
-      type: SettingsType.selector,
-    ),
-    SettingsItem(
       key: 'notifications',
       titleEn: 'Prayer Notifications',
       titleAr: 'إشعارات الصلاة',

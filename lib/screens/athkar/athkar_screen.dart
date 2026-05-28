@@ -24,24 +24,28 @@ class AthkarCategoriesScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final cat = AthkarCategory.values[index];
           final icons = [
-            Icons.wb_sunny_rounded,
-            Icons.nightlight_round,
-            Icons.mosque_rounded,
-            Icons.bedtime_rounded,
-            Icons.alarm_rounded,
-            Icons.menu_book_rounded,
-            Icons.auto_awesome_rounded,
-            Icons.more_horiz_rounded,
+            Icons.wb_sunny_rounded,       // morning
+            Icons.nightlight_round,        // evening
+            Icons.bedtime_rounded,         // sleep
+            Icons.mosque_rounded,          // after prayer
+            Icons.flight_takeoff_rounded,  // travel
+            Icons.home_rounded,            // home
+            Icons.restaurant_rounded,      // food & drink
+            Icons.wash_rounded,            // bathroom
+            Icons.healing_rounded,         // ruqya sunnah
+            Icons.menu_book_rounded,       // ruqya quran
           ];
           final colors = [
-            AppColors.goldenAccent,
-            cs.primary,
-            cs.tertiary,
-            cs.primaryContainer,
-            AppColors.goldenAccent,
-            cs.tertiaryContainer,
-            cs.secondaryContainer,
-            AppColors.mutedSage,
+            AppColors.goldenAccent,        // morning
+            cs.primary,                    // evening
+            cs.primaryContainer,           // sleep
+            cs.tertiary,                   // after prayer
+            AppColors.goldenAccent,        // travel
+            cs.primary,                    // home
+            cs.tertiary,                   // food
+            AppColors.mutedSage,           // bathroom
+            cs.secondaryContainer,         // ruqya sunnah
+            cs.tertiaryContainer,          // ruqya quran
           ];
 
           return Padding(
@@ -114,10 +118,10 @@ class AthkarCategoriesScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
               ),
             ),
-          );
+          ));
+
         },
       ),
     );

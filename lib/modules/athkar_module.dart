@@ -43,12 +43,18 @@ class Dhikr {
       );
 }
 
-/// Four categories only.
+/// Athkar categories.
 enum AthkarCategory {
   morning('أذكار الصباح', 'Morning Athkar', 'morning'),
   evening('أذكار المساء', 'Evening Athkar', 'evening'),
   sleep('أذكار النوم', 'Sleep Athkar', 'sleep'),
-  afterPrayer('أذكار بعد الصلاة', 'After Prayer', 'after_prayer');
+  afterPrayer('أذكار بعد الصلاة', 'After Prayer', 'after_prayer'),
+  travel('أذكار السفر', 'Travel Athkar', 'travel'),
+  home('أذكار المنزل', 'Entering & Leaving Home', 'home'),
+  food('أذكار الطعام والشراب', 'Food & Drink', 'food'),
+  bathroom('أذكار الخلاء', 'Entering & Leaving Bathroom', 'bathroom'),
+  ruqyaSunnah('الرقية من السنة', 'Ruqya from Sunnah', 'ruqya_sunnah'),
+  ruqyaQuran('الرقية من القرآن', 'Ruqya from Quran', 'ruqya_quran');
 
   final String arabicTitle;
   final String englishTitle;
@@ -570,6 +576,341 @@ class AthkarData {
         ),
       ];
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // TRAVEL ATHKAR — أذكار السفر
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> travelAthkar() => [
+        Dhikr(
+          id: 'travel_01',
+          arabicText:
+              'اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ. اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى. اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَذَا وَاطْوِ عَنَّا بُعْدَهُ. اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ، وَالْخَلِيفَةُ فِي الْأَهْلِ. اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ وَعْثَاءِ السَّفَرِ، وَكَآبَةِ الْمَنْظَرِ، وَسُوءِ الْمُنْقَلَبِ فِي الْمَالِ وَالْأَهْلِ.',
+          transliteration:
+              'Allahu Akbar, Allahu Akbar, Allahu Akbar. Subhanal-lathee sakh-khara lana hatha wa ma kunna lahu muqrineen. Wa inna ila rabbina lamunqaliboon. Allahumma inna nas\'aluka fee safarinaa hathal-birra wat-taqwa, wa minal-\'amali ma tarda. Allahumma hawwin \'alayna safarana hatha wat-wi \'anna bu\'dah. Allahumma antas-sahibu fis-safar, wal-khaleefatu fil-ahl. Allahumma innee a\'oodhu bika min wa\'tha\'is-safar, wa ka\'abatil-mandhar, wa soo\'il-munqalabi fil-mali wal-ahl.',
+          translation:
+              'Allah is the Greatest, Allah is the Greatest, Allah is the Greatest. Glory be to Him Who has subjected this to us, and we could never have it (by our efforts). And verily, to our Lord we are to return. O Allah, we ask You in this journey of ours for righteousness and piety, and deeds that are pleasing to You. O Allah, make this journey easy for us and fold up its distance. O Allah, You are the Companion in travel and the Guardian of the family. O Allah, I seek refuge in You from the hardships of travel, and from seeing a distressing sight, and from finding harm when I return to my family and property.',
+          repeatCount: 1,
+          reference: 'Muslim',
+          category: 'travel',
+        ),
+        Dhikr(
+          id: 'travel_02',
+          arabicText:
+              'اللَّهُمَّ إِنِّي أَسْتَوْدِعُكَ أَهْلِي وَمَالِي وَعَمَلِي وَخَاتِمَةَ عَمَلِي.',
+          transliteration:
+              'Allahumma innee astawdi\'uka ahlee wa malee wa \'amalee wa khatimata \'amalee.',
+          translation:
+              'O Allah, I entrust to You my family, my wealth, my deeds, and the seal of my deeds.',
+          repeatCount: 1,
+          reference: 'Ibn Al-Sunni — Hasan',
+          category: 'travel',
+        ),
+        Dhikr(
+          id: 'travel_03',
+          arabicText:
+              'آيِبُونَ، تَائِبُونَ، عَابِدُونَ، لِرَبِّنَا حَامِدُونَ.',
+          transliteration:
+              'A\'iboon, ta\'iboon, \'aabidoon, lirabbina hamidoon.',
+          translation:
+              'Returning, repenting, worshipping, and to our Lord praising.',
+          repeatCount: 1,
+          reference: 'Muslim — said upon return from travel',
+          category: 'travel',
+        ),
+      ];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // HOME ATHKAR — أذكار دخول وخروج المنزل
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> homeAthkar() => [
+        Dhikr(
+          id: 'home_01',
+          arabicText:
+              'بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا.',
+          transliteration:
+              'Bismillahi walajna, wa bismillahi kharajna, wa \'ala rabbina tawakkalna.',
+          translation:
+              'In the name of Allah we enter, and in the name of Allah we leave, and upon our Lord we place our trust.',
+          repeatCount: 1,
+          reference: 'Abu Dawud — Sahih',
+          category: 'home',
+        ),
+        Dhikr(
+          id: 'home_02',
+          arabicText:
+              'اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَوْلِجِ وَخَيْرَ الْمَخْرَجِ، بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا.',
+          transliteration:
+              'Allahumma innee as\'aluka khayral-mawlij wa khayral-makhraj. Bismillahi walajna, wa bismillahi kharajna, wa \'alallahi rabbina tawakkalna.',
+          translation:
+              'O Allah, I ask You for the best entrance and the best exit. In the name of Allah we enter, and in the name of Allah we leave, and upon Allah our Lord we place our trust.',
+          repeatCount: 1,
+          reference: 'Abu Dawud — Sahih',
+          category: 'home',
+        ),
+        Dhikr(
+          id: 'home_03',
+          arabicText:
+              'بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ.',
+          transliteration:
+              'Bismillah, tawakkaltu \'alallah, wa la hawla wa la quwwata illa billah.',
+          translation:
+              'In the name of Allah, I place my trust in Allah, and there is no might nor power except with Allah.',
+          repeatCount: 1,
+          reference: 'Abu Dawud, Tirmidhi — Sahih — said when leaving the home',
+          category: 'home',
+        ),
+      ];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // FOOD & DRINK ATHKAR — أذكار الطعام والشراب
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> foodAthkar() => [
+        Dhikr(
+          id: 'food_01',
+          arabicText: 'بِسْمِ اللَّهِ.',
+          transliteration: 'Bismillah.',
+          translation:
+              'In the name of Allah. (Said before eating or drinking.)',
+          repeatCount: 1,
+          reference: 'Bukhari & Muslim',
+          category: 'food',
+        ),
+        Dhikr(
+          id: 'food_02',
+          arabicText:
+              'بِسْمِ اللَّهِ أَوَّلَهُ وَآخِرَهُ.',
+          transliteration: 'Bismillahi awwalahu wa akhirah.',
+          translation:
+              'In the name of Allah at its beginning and at its end. (Said if you forget to say Bismillah at the start.)',
+          repeatCount: 1,
+          reference: 'Abu Dawud & Tirmidhi — Sahih',
+          category: 'food',
+        ),
+        Dhikr(
+          id: 'food_03',
+          arabicText:
+              'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ.',
+          transliteration:
+              'Alhamdu lillahil-lathee at\'amanee hatha wa razaqaneehi min ghayri hawlin minnee wa la quwwah.',
+          translation:
+              'All praise is to Allah Who has fed me this and provided it for me without any might nor power on my part.',
+          repeatCount: 1,
+          reference: 'Abu Dawud, Tirmidhi, Ibn Majah — Hasan',
+          category: 'food',
+        ),
+        Dhikr(
+          id: 'food_04',
+          arabicText:
+              'الْحَمْدُ لِلَّهِ حَمْدًا كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ، غَيْرَ مَكْفِيٍّ وَلَا مُوَدَّعٍ وَلَا مُسْتَغْنًى عَنْهُ رَبَّنَا.',
+          transliteration:
+              'Alhamdu lillahi hamdan katheeran tayyiban mubarakan feeh, ghayra makfiyyin wa la muwadda\'in wa la mustaghnan \'anhu rabbana.',
+          translation:
+              'All praise is to Allah, much good and blessed praise. (A praise that is) not insufficient, not bid farewell, and not dispensed with, O our Lord.',
+          repeatCount: 1,
+          reference: 'Bukhari',
+          category: 'food',
+        ),
+        Dhikr(
+          id: 'food_05',
+          arabicText:
+              'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مُسْلِمِينَ.',
+          transliteration:
+              'Alhamdu lillahil-lathee at\'amana wa saqana wa ja\'alana muslimeen.',
+          translation:
+              'All praise is to Allah Who has fed us and given us drink and made us Muslims.',
+          repeatCount: 1,
+          reference: 'Abu Dawud, Tirmidhi, Ibn Majah — Hasan',
+          category: 'food',
+        ),
+      ];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BATHROOM ATHKAR — أذكار دخول وخروج الخلاء
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> bathroomAthkar() => [
+        Dhikr(
+          id: 'bathroom_01',
+          arabicText:
+              'بِسْمِ اللَّهِ، اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ.',
+          transliteration:
+              'Bismillah. Allahumma innee a\'oodhu bika minal-khubthi wal-khaba\'ith.',
+          translation:
+              'In the name of Allah. O Allah, I seek refuge in You from the male and female devils. (Said before entering.)',
+          repeatCount: 1,
+          reference: 'Bukhari & Muslim',
+          category: 'bathroom',
+        ),
+        Dhikr(
+          id: 'bathroom_02',
+          arabicText: 'غُفْرَانَكَ.',
+          transliteration: 'Ghufranaka.',
+          translation:
+              'I ask Your forgiveness. (Said after leaving.)',
+          repeatCount: 1,
+          reference: 'Abu Dawud, Tirmidhi, Ibn Majah — Sahih',
+          category: 'bathroom',
+        ),
+      ];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RUQYA FROM SUNNAH — الرقية من السنة
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> ruqyaSunnahAthkar() => [
+        Dhikr(
+          id: 'ruqya_sunnah_01',
+          arabicText:
+              'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ.',
+          transliteration:
+              'A\'oodhu bikalimatillahit-tammati min sharri ma khalaq.',
+          translation:
+              'I seek refuge in the perfect words of Allah from the evil of what He has created.',
+          repeatCount: 3,
+          reference: 'Muslim',
+          category: 'ruqya_sunnah',
+        ),
+        Dhikr(
+          id: 'ruqya_sunnah_02',
+          arabicText:
+              'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ، وَمِنْ كُلِّ عَيْنٍ لَامَّةٍ.',
+          transliteration:
+              'A\'oodhu bikalimatillahit-tammati min kulli shaytanin wa hammah, wa min kulli \'aynin lammah.',
+          translation:
+              'I seek refuge in the perfect words of Allah from every devil and every poisonous creature, and from every evil eye.',
+          repeatCount: 3,
+          reference: 'Bukhari — Ibrahim used to seek refuge for Isma\'il and Ishaq with these words',
+          category: 'ruqya_sunnah',
+        ),
+        Dhikr(
+          id: 'ruqya_sunnah_03',
+          arabicText:
+              'بِسْمِ اللَّهِ أَرْقِيكَ، مِنْ كُلِّ شَيْءٍ يُؤْذِيكَ، مِنْ شَرِّ كُلِّ نَفْسٍ أَوْ عَيْنِ حَاسِدٍ، اللَّهُ يَشْفِيكَ، بِسْمِ اللَّهِ أَرْقِيكَ.',
+          transliteration:
+              'Bismillahi arqeek, min kulli shay\'in yu\'theek, min sharri kulli nafsin aw \'ayni hasidin. Allahu yashfeek, bismillahi arqeek.',
+          translation:
+              'In the name of Allah I perform ruqya upon you, from everything that harms you, from the evil of every soul or envious eye. May Allah heal you, in the name of Allah I perform ruqya upon you.',
+          repeatCount: 3,
+          reference: 'Muslim',
+          category: 'ruqya_sunnah',
+        ),
+        Dhikr(
+          id: 'ruqya_sunnah_04',
+          arabicText:
+              'أَسْأَلُ اللَّهَ الْعَظِيمَ، رَبَّ الْعَرْشِ الْعَظِيمِ، أَنْ يَشْفِيَكَ.',
+          transliteration:
+              'As\'alullaha al-\'Azeem, Rabbal-\'arshil-\'azeem, an yashfiyak.',
+          translation:
+              'I ask Allah the Almighty, Lord of the Mighty Throne, to heal you.',
+          repeatCount: 7,
+          reference: 'Abu Dawud, Tirmidhi — Sahih',
+          category: 'ruqya_sunnah',
+        ),
+        Dhikr(
+          id: 'ruqya_sunnah_05',
+          arabicText:
+              'بِسْمِ اللَّهِ (ثَلَاثًا)، أَعُوذُ بِاللَّهِ وَقُدْرَتِهِ مِنْ شَرِّ مَا أَجِدُ وَأُحَاذِرُ.',
+          transliteration:
+              'Bismillah (three times). A\'oodhu billahi wa qudratihi min sharri ma ajidu wa uhadhir.',
+          translation:
+              'In the name of Allah (three times). I seek refuge in Allah and His power from the evil of what I feel and what I fear.',
+          repeatCount: 7,
+          reference: 'Muslim — placing hand on the area of pain',
+          category: 'ruqya_sunnah',
+        ),
+      ];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RUQYA FROM QURAN — الرقية من القرآن
+  // ─────────────────────────────────────────────────────────────────────────
+  static List<Dhikr> ruqyaQuranAthkar() => [
+        Dhikr(
+          id: 'ruqya_quran_01',
+          arabicText:
+              'سُورَةُ الْفَاتِحَةِ:\nبِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝ الرَّحْمَٰنِ الرَّحِيمِ ۝ مَالِكِ يَوْمِ الدِّينِ ۝ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ۝ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ۝ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ.',
+          transliteration: 'Surat Al-Fatiha (1)',
+          translation:
+              'In the name of Allah, the Entirely Merciful, the Especially Merciful. All praise is due to Allah, Lord of the worlds. The Entirely Merciful, the Especially Merciful. Sovereign of the Day of Recompense. It is You we worship and You we ask for help. Guide us to the straight path. The path of those upon whom You have bestowed favor, not of those who have evoked anger or of those who are astray.',
+          repeatCount: 7,
+          reference: 'Al-Fatiha is the greatest ruqya — Bukhari',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_02',
+          arabicText:
+              'آيَةُ الْكُرْسِيِّ:\nاللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ.',
+          transliteration: 'Ayat Al-Kursi — Al-Baqarah 2:255',
+          translation:
+              'Allah — there is no deity except Him, the Ever-Living, the Sustainer of existence. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth. Who is it that can intercede with Him except by His permission? He knows what is before them and what will be after them, and they encompass not a thing of His knowledge except for what He wills. His Kursi extends over the heavens and the earth, and their preservation tires Him not. And He is the Most High, the Most Great.',
+          repeatCount: 1,
+          reference: 'Bukhari',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_03',
+          arabicText:
+              'آخِرُ آيَتَيْنِ مِنْ سُورَةِ الْبَقَرَةِ:\nآمَنَ الرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رُّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ ۝ لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ.',
+          transliteration: 'Last two ayat of Surat Al-Baqarah — 2:285-286',
+          translation:
+              'The Messenger has believed in what was revealed to him from his Lord, and so have the believers. All of them have believed in Allah and His angels and His books and His messengers, saying "We make no distinction between any of His messengers." And they say, "We hear and we obey. Grant us Your forgiveness, our Lord, and to You is the final destination." Allah does not burden a soul beyond that it can bear. It will have the consequence of what good it has gained, and it will bear the consequence of what evil it has earned. Our Lord, do not impose blame upon us if we have forgotten or erred. Our Lord, and lay not upon us a burden like that which You laid upon those before us. Our Lord, and burden us not with that which we have no ability to bear. And pardon us; and forgive us; and have mercy upon us. You are our protector, so give us victory over the disbelieving people.',
+          repeatCount: 1,
+          reference: 'Muslim — whoever recites them at night, they are sufficient for him',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_04',
+          arabicText:
+              'سُورَةُ الْإِخْلَاصِ:\nقُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ.',
+          transliteration: 'Surat Al-Ikhlas (112)',
+          translation:
+              'Say: He is Allah, the One. Allah, the Eternal Refuge. He neither begets nor is born, nor is there to Him any equivalent.',
+          repeatCount: 3,
+          reference: 'Abu Dawud & Tirmidhi — Sahih',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_05',
+          arabicText:
+              'سُورَةُ الْفَلَقِ:\nقُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ.',
+          transliteration: 'Surat Al-Falaq (113)',
+          translation:
+              'Say: I seek refuge in the Lord of daybreak. From the evil of that which He created. And from the evil of darkness when it settles. And from the evil of the blowers in knots. And from the evil of an envier when he envies.',
+          repeatCount: 3,
+          reference: 'Abu Dawud & Tirmidhi — Sahih',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_06',
+          arabicText:
+              'سُورَةُ النَّاسِ:\nقُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ.',
+          transliteration: 'Surat Al-Nas (114)',
+          translation:
+              'Say: I seek refuge in the Lord of mankind, the Sovereign of mankind, the God of mankind, from the evil of the retreating whisperer, who whispers in the breasts of mankind — from among jinn and mankind.',
+          repeatCount: 3,
+          reference: 'Abu Dawud & Tirmidhi — Sahih',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_07',
+          arabicText:
+              'وَنُنَزِّلُ مِنَ الْقُرْآنِ مَا هُوَ شِفَاءٌ وَرَحْمَةٌ لِّلْمُؤْمِنِينَ ۙ وَلَا يَزِيدُ الظَّالِمِينَ إِلَّا خَسَارًا.',
+          transliteration: 'Al-Isra 17:82',
+          translation:
+              'And We send down of the Quran that which is healing and mercy for the believers, but it does not increase the wrongdoers except in loss.',
+          repeatCount: 1,
+          reference: 'Quran 17:82',
+          category: 'ruqya_quran',
+        ),
+        Dhikr(
+          id: 'ruqya_quran_08',
+          arabicText:
+              'وَإِذَا مَرِضْتُ فَهُوَ يَشْفِينِ.',
+          transliteration: 'Ash-Shu\'ara 26:80',
+          translation:
+              'And when I am ill, it is He who cures me.',
+          repeatCount: 1,
+          reference: 'Quran 26:80',
+          category: 'ruqya_quran',
+        ),
+      ];
+
   /// Returns all athkar for a given category key.
   static List<Dhikr> forCategory(String key) {
     switch (key) {
@@ -581,6 +922,18 @@ class AthkarData {
         return sleepAthkar();
       case 'after_prayer':
         return afterPrayerAthkar();
+      case 'travel':
+        return travelAthkar();
+      case 'home':
+        return homeAthkar();
+      case 'food':
+        return foodAthkar();
+      case 'bathroom':
+        return bathroomAthkar();
+      case 'ruqya_sunnah':
+        return ruqyaSunnahAthkar();
+      case 'ruqya_quran':
+        return ruqyaQuranAthkar();
       default:
         return [];
     }

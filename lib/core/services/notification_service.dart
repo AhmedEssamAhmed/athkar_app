@@ -329,7 +329,7 @@ class NotificationService {
 
   Future<void> scheduleFourthSixthNotification(DateTime maghribTime, DateTime fajrTime) async {
     final sunsetToNextFajr = fajrTime.add(const Duration(days: 1)).difference(maghribTime);
-    final fourthSixth = maghribTime.add((sunsetToNextFajr * 4) ~/ 6);
+    final fourthSixth = maghribTime.add((sunsetToNextFajr * 3) ~/ 6);
     await _scheduleDaily(
       id: _hashString('fourth_sixth'),
       titleEn: 'Fourth Sixth of Night',

@@ -595,8 +595,6 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                   children: [
                     Text(
                       isArabic ? current.nameAr : current.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: isArabic ? 'Amiri' : 'Manrope',
                         fontSize: isArabic ? 32 : 28,
@@ -630,53 +628,57 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(20),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: Colors.white.withAlpha(25),
-                    width: 0.5,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(20),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: Colors.white.withAlpha(25),
+                      width: 0.5,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            isArabic ? next.nameAr : next.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.labelMedium.copyWith(
-                              color: Colors.white.withAlpha(200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              isArabic ? next.nameAr : next.name,
+                              style: AppTypography.labelMedium.copyWith(
+                                color: Colors.white.withAlpha(200),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.navigate_next_rounded, size: 16, color: Colors.white.withAlpha(160)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isNegative
-                          ? (isArabic ? '--:--' : '--:--')
-                          : hours > 0
-                              ? '${hours}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
-                              : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                        fontFamily: 'Manrope',
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 1,
+                          const SizedBox(width: 4),
+                          Icon(Icons.navigate_next_rounded, size: 16, color: Colors.white.withAlpha(160)),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          isNegative
+                              ? (isArabic ? '--:--' : '--:--')
+                              : hours > 0
+                                  ? '${hours}h ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
+                                  : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -831,7 +833,7 @@ class _SpecialTimesRow extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 2.3,
+              childAspectRatio: 2.0,
             ),
             itemCount: items.length,
             itemBuilder: (context, index) {
@@ -901,34 +903,31 @@ class _SpecialTimesRow extends StatelessWidget {
                       ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        clipBehavior: Clip.hardEdge,
-                        alignment: Alignment.centerLeft,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              item.time,
-                              style: AppTypography.bodyLarge.copyWith(
-                                color: isDark ? item.color.withAlpha(220) : item.color,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            item.time,
+                            style: AppTypography.bodyLarge.copyWith(
+                              color: isDark ? item.color.withAlpha(220) : item.color,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
                             ),
-                            const SizedBox(height: 1),
-                            Text(
-                              isArabic ? item.labelAr : item.labelEn,
-                              style: AppTypography.labelMedium.copyWith(
-                                color: cs.onSurfaceVariant.withAlpha(isDark ? 160 : 180),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            isArabic ? item.labelAr : item.labelEn,
+                            style: AppTypography.labelMedium.copyWith(
+                              color: cs.onSurfaceVariant.withAlpha(isDark ? 160 : 180),
                             ),
-                          ],
-                        ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                   ],

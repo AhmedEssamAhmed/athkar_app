@@ -101,7 +101,7 @@ class PrayerTimeService {
     }
     final sunsetToNextFajr =
         fajr.add(const Duration(days: 1)).difference(maghrib);
-    return maghrib.add((sunsetToNextFajr * 4) ~/ 6);
+    return maghrib.add((sunsetToNextFajr * 3) ~/ 6);
   }
 
   HijriDate getHijriDate() {
