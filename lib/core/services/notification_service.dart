@@ -194,7 +194,6 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
-          fullScreenIntent: isPrayer,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -631,7 +630,6 @@ class NotificationService {
           sound: useAthanSound
               ? const RawResourceAndroidNotificationSound('athan')
               : null,
-          fullScreenIntent: useAthanSound,
           timeoutAfter: useAthanSound ? 240000 : null,
         ),
         iOS: const DarwinNotificationDetails(
@@ -647,6 +645,7 @@ class NotificationService {
       payload: 'titleAr:$titleAr,bodyAr:$bodyAr',
     );
   }
+
 
   Future<void> _scheduleWeekly({
     required int id,
@@ -685,7 +684,6 @@ class NotificationService {
               : 'General app notifications',
           importance: Importance.max,
           priority: Priority.high,
-          fullScreenIntent: useAthanSound,
           timeoutAfter: useAthanSound ? 240000 : null,
         ),
         iOS: const DarwinNotificationDetails(

@@ -643,7 +643,7 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 20),
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -677,12 +677,14 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
                       const SizedBox(height: 4),
                       FittedBox(
                         fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
                         child: Text(
                           isNegative
                               ? (isArabic ? '--:--' : '--:--')
                               : hours > 0
                                   ? '${hours}h ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
                                   : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                          textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontFamily: 'Manrope',
                             fontSize: 22,
