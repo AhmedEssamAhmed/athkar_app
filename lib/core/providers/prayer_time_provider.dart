@@ -160,6 +160,7 @@ class PrayerTimeProvider extends ChangeNotifier {
       _error = e.toString();
       if (!_prayerService.isLocationSet) {
         _prayerService.setDefaultLocation();
+        _locationName = _prayerService.getCityName();
         _updatePrayerTimes();
       }
     } finally {
@@ -407,7 +408,6 @@ class PrayerTimeProvider extends ChangeNotifier {
     _locationName = await _resolveLocationName(lat, lng);
     _updatePrayerTimes();
     await _scheduleAllNotifications();
-    notifyListeners();
   }
 
   Future<String> _resolveLocationName(double lat, double lng) async {
@@ -444,7 +444,6 @@ class PrayerTimeProvider extends ChangeNotifier {
     _prayerService.setHijriMethod(method);
     _updatePrayerTimes();
     await _scheduleAllNotifications();
-    notifyListeners();
   }
 
   void setLanguage({required bool isArabic}) {
