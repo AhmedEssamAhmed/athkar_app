@@ -12,6 +12,7 @@ class PrayerTimeService {
   Coordinates? _coordinates;
   PrayerTimes? _prayerTimes;
   DateTime? _date;
+  DateTime? _calculationDate;
   HijriCalendarMethod _hijriMethod = HijriCalendarMethod.ummAlQura;
 
   static const double _defaultLatitude = 21.4225;
@@ -36,11 +37,20 @@ class PrayerTimeService {
     // and doesn't use the _hijriMethod field. This is kept for future implementation.
   }
 
+  bool get isNewDay {
+    final now = DateTime.now();
+    return _calculationDate == null ||
+        _calculationDate!.year != now.year ||
+        _calculationDate!.month != now.month ||
+        _calculationDate!.day != now.day;
+  }
+
   void _calculatePrayerTimes() {
     if (_coordinates == null) return;
 
     final now = DateTime.now();
     _date = DateTime(now.year, now.month, now.day);
+    _calculationDate = _date;
 
     final params = CalculationMethod.egyptian.getParameters();
     params.madhab = Madhab.shafi;

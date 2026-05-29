@@ -317,6 +317,7 @@ class PrayerTimeProvider extends ChangeNotifier {
 
     for (final name in prayerTimes.keys) {
       await _notificationService.cancelNotification('prayer_$name');
+      await _notificationService.cancelNotification('pre_prayer_$name');
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -382,6 +383,12 @@ class PrayerTimeProvider extends ChangeNotifier {
     try {
       await _notificationService.scheduleSurahKahfReminder();
     } catch (_) {}
+  }
+
+  void checkForNewDay() {
+    if (_prayerService.isNewDay) {
+      refresh();
+    }
   }
 
   Future<void> refresh() async {

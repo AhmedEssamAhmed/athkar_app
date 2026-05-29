@@ -471,7 +471,10 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+      if (mounted) {
+        widget.provider.checkForNewDay();
+        setState(() => _now = DateTime.now());
+      }
     });
   }
 
@@ -517,17 +520,29 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
 
     if (prayers.isEmpty) return const SizedBox.shrink();
 
-    final current = prayers.firstWhere(
-      (p) => p.isCurrent,
-      orElse: () => prayers.first,
-    );
+    int nextIdx = -1;
+    for (int i = 0; i < prayers.length; i++) {
+      final dt = _prayerDateTime(prayers[i].name);
+      if (dt != null && dt.isAfter(_now)) {
+        nextIdx = i;
+        break;
+      }
+    }
 
-    final currentIdx = prayers.indexOf(current);
-    final next = currentIdx + 1 < prayers.length
-        ? prayers[currentIdx + 1]
-        : prayers.first;
+    final PrayerTime current;
+    final PrayerTime next;
+    final DateTime? nextDt;
+    if (nextIdx == -1) {
+      current = prayers.last;
+      next = prayers.first;
+      final fajr = _prayerDateTime('Fajr');
+      nextDt = fajr?.add(const Duration(days: 1));
+    } else {
+      current = nextIdx == 0 ? prayers[0] : prayers[nextIdx - 1];
+      next = prayers[nextIdx];
+      nextDt = _prayerDateTime(next.name);
+    }
 
-    final nextDt = _prayerDateTime(next.name);
     final timeLeft = _timeUntil(nextDt);
     final hours = timeLeft.inHours;
     final minutes = timeLeft.inMinutes.remainder(60);

@@ -268,6 +268,17 @@ class NotificationService {
         minute: time.minute,
         useAthanSound: name != 'sunrise',
       );
+
+      if (name != 'sunrise') {
+        final reminderTime = time.subtract(const Duration(minutes: 10));
+        await _scheduleDaily(
+          id: _hashString('pre_prayer_$name'),
+          titleEn: '10 minutes until ${names.$1}',
+          titleAr: '${names.$2} بعد 10 دقائق',
+          hour: reminderTime.hour,
+          minute: reminderTime.minute,
+        );
+      }
     }
   }
 
@@ -352,7 +363,7 @@ class NotificationService {
         _hashString('fasting_monday'),
         isAr ? 'صُم غداً' : 'Fast Tomorrow',
         '',
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute),
+        tz.TZDateTime.from(DateTime(now.year, now.month, now.day, time.hour, time.minute), tz.local),
         NotificationDetails(
           android: AndroidNotificationDetails(
             'athkar_notifications',
@@ -379,7 +390,7 @@ class NotificationService {
         _hashString('fasting_thursday'),
         isAr ? 'صُم غداً' : 'Fast Tomorrow',
         '',
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute),
+        tz.TZDateTime.from(DateTime(now.year, now.month, now.day, time.hour, time.minute), tz.local),
         NotificationDetails(
           android: AndroidNotificationDetails(
             'athkar_notifications',
@@ -598,7 +609,7 @@ class NotificationService {
     final body = isAr ? bodyAr : bodyEn;
 
     final now = DateTime.now();
-    var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduledDate = tz.TZDateTime.from(DateTime(now.year, now.month, now.day, hour, minute), tz.local);
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
@@ -621,7 +632,7 @@ class NotificationService {
               ? const RawResourceAndroidNotificationSound('athan')
               : null,
           fullScreenIntent: useAthanSound,
-          timeoutAfter: useAthanSound ? 60000 : null,
+          timeoutAfter: useAthanSound ? 240000 : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -654,7 +665,7 @@ class NotificationService {
     final body = isAr ? bodyAr : bodyEn;
 
     final now = DateTime.now();
-    var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduledDate = tz.TZDateTime.from(DateTime(now.year, now.month, now.day, hour, minute), tz.local);
     
     while (scheduledDate.weekday != dayOfWeek || scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
@@ -675,7 +686,7 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
           fullScreenIntent: useAthanSound,
-          timeoutAfter: useAthanSound ? 45000 : null,
+          timeoutAfter: useAthanSound ? 240000 : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
