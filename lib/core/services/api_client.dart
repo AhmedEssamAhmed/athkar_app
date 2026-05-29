@@ -9,8 +9,8 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   // ── Configuration ──────────────────────────────────────────────
   // `10.0.2.2` is the Android emulator alias for the host machine (your PC).
-  // For a physical device, replace with your PC's LAN IP (e.g. http://192.168.1.x:8000).
-  static const String _baseUrl = 'http://10.0.2.2:8000';
+  // For a physical device, replace with your PC's LAN IP (e.g. http://192.168.0.89:8000).
+  static const String _baseUrl = 'http://192.168.0.89:8000';
 
   final http.Client _client;
 

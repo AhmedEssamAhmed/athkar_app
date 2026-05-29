@@ -46,7 +46,7 @@ app.add_middleware(
 )
 
 # Shared HTTP client (reused across requests for connection pooling)
-http_client = httpx.AsyncClient(timeout=15.0)
+http_client = httpx.AsyncClient(timeout=30.0)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -82,20 +82,31 @@ async def nearby_mosques(
     radius: int = Query(3000, description="Search radius in metres"),
 ):
     """Return mosques near the user via OpenStreetMap Overpass API."""
-    url = "https://overpass-api.de/api/interpreter"
-    query = f"""[out:json][timeout:15];(node["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});way["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});relation["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng}););out center;"""
+    urls = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter"
+    ]
+    query = f"""[out:json][timeout:25];(node["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});way["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng});relation["amenity"="place_of_worship"]["religion"="muslim"](around:{radius},{lat},{lng}););out center;"""
     
     headers = {
         "User-Agent": "NoorAthkarApp/1.0 (contact@noorathkar.com)",
         "Accept": "application/json"
     }
     
-    resp = await http_client.post(url, data={"data": query}, headers=headers)
+    data = None
+    for url in urls:
+        try:
+            resp = await http_client.post(url, data={"data": query}, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                break
+        except httpx.RequestError:
+            continue
+            
+    if not data:
+        raise HTTPException(status_code=502, detail="Overpass API error: All endpoints timed out")
     
-    if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Overpass API error: {resp.status_code}")
-    
-    data = resp.json()
     elements = data.get("elements", [])
     
     results: list[MosqueResult] = []

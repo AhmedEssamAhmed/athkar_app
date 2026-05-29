@@ -81,7 +81,6 @@ class PrayerTimeProvider extends ChangeNotifier {
       bool gotPosition = false;
 
       if (canUseGps) {
-        // Try last known position first — instant and works indoors
         try {
           final lastPos = await Geolocator.getLastKnownPosition();
           if (lastPos != null) {
@@ -98,7 +97,6 @@ class PrayerTimeProvider extends ChangeNotifier {
         } catch (_) {}
 
         if (!gotPosition) {
-          // Try high accuracy GPS with timeout
           try {
             final position = await Geolocator.getCurrentPosition(
               locationSettings: const LocationSettings(
@@ -117,7 +115,6 @@ class PrayerTimeProvider extends ChangeNotifier {
             gotPosition = true;
           } catch (_) {
             _error = 'GPS couldn\'t get a fix — go outdoors or check GPS';
-            // High accuracy failed — try medium accuracy
             try {
               final position = await Geolocator.getCurrentPosition(
                 locationSettings: const LocationSettings(
@@ -159,8 +156,6 @@ class PrayerTimeProvider extends ChangeNotifier {
         }
         _updatePrayerTimes();
       }
-
-      _scheduleAllNotifications();
     } catch (e) {
       _error = e.toString();
       if (!_prayerService.isLocationSet) {
@@ -168,6 +163,7 @@ class PrayerTimeProvider extends ChangeNotifier {
         _updatePrayerTimes();
       }
     } finally {
+      await _scheduleAllNotifications();
       _isLoading = false;
       notifyListeners();
     }
@@ -297,7 +293,11 @@ class PrayerTimeProvider extends ChangeNotifier {
   }
 
   Future<void> _scheduleAllNotifications() async {
-    await _notificationService.init();
+    try {
+      await _notificationService.init();
+    } catch (_) {
+      return;
+    }
 
     final fajr = _prayerService.fajrTime;
     final sunrise = _prayerService.sunriseTime;
@@ -323,11 +323,15 @@ class PrayerTimeProvider extends ChangeNotifier {
     final prayerNotificationsEnabled =
         prefs.getBool(SettingsProvider.prayerNotificationsPrefsKey) ?? true;
     if (prayerNotificationsEnabled) {
-      await _notificationService.schedulePrayerNotifications(prayerTimes);
+      try {
+        await _notificationService.schedulePrayerNotifications(prayerTimes);
+      } catch (_) {}
     }
 
     if (sunrise != null) {
-      await _notificationService.scheduleDuhaNotification(sunrise);
+      try {
+        await _notificationService.scheduleDuhaNotification(sunrise);
+      } catch (_) {}
     }
 
     await _notificationService.cancelNotification('morning_athkar');
@@ -337,29 +341,47 @@ class PrayerTimeProvider extends ChangeNotifier {
         prefs.getBool(SettingsProvider.athkarRemindersPrefsKey) ?? true;
     if (athkarRemindersEnabled) {
       if (fajr != null) {
-        await _notificationService.scheduleMorningAthkar(fajr);
+        try {
+          await _notificationService.scheduleMorningAthkar(fajr);
+        } catch (_) {}
       }
 
       if (maghrib != null) {
-        await _notificationService.scheduleEveningAthkar(maghrib);
+        try {
+          await _notificationService.scheduleEveningAthkar(maghrib);
+        } catch (_) {}
       }
     }
 
     if (maghrib != null && fajr != null) {
-      await _notificationService.scheduleMidnightNotification(maghrib, fajr);
-      await _notificationService.scheduleLastThirdNotification(maghrib, fajr);
-      await _notificationService.scheduleFourthSixthNotification(maghrib, fajr);
+      try {
+        await _notificationService.scheduleMidnightNotification(maghrib, fajr);
+      } catch (_) {}
+      try {
+        await _notificationService.scheduleLastThirdNotification(maghrib, fajr);
+      } catch (_) {}
+      try {
+        await _notificationService.scheduleFourthSixthNotification(maghrib, fajr);
+      } catch (_) {}
     }
 
     if (maghrib != null) {
-      await _notificationService.scheduleFastingMonThuReminders(maghrib);
-      await _notificationService.scheduleWhiteDaysReminder(
-          maghrib, hijriDate.day);
-      await _notificationService.scheduleMonthEntranceReminder(
-          maghrib, hijriDate.day);
+      try {
+        await _notificationService.scheduleFastingMonThuReminders(maghrib);
+      } catch (_) {}
+      try {
+        await _notificationService.scheduleWhiteDaysReminder(
+            maghrib, hijriDate.day);
+      } catch (_) {}
+      try {
+        await _notificationService.scheduleMonthEntranceReminder(
+            maghrib, hijriDate.day);
+      } catch (_) {}
     }
 
-    await _notificationService.scheduleSurahKahfReminder();
+    try {
+      await _notificationService.scheduleSurahKahfReminder();
+    } catch (_) {}
   }
 
   Future<void> refresh() async {

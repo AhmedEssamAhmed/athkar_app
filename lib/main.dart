@@ -8,7 +8,6 @@ import 'core/theme/app_theme.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/tasbeeh_provider.dart';
 import 'core/providers/prayer_time_provider.dart';
-import 'core/services/notification_service.dart';
 import 'screens/entry/splash_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/athkar/athkar_screen.dart';
@@ -43,7 +42,6 @@ void main() async {
   );
 
   prayerTimeProvider.init();
-  NotificationService().init();
 }
 
 class NoorAthkarApp extends StatelessWidget {

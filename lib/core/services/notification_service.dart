@@ -129,6 +129,7 @@ class NotificationService {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       await android?.requestNotificationsPermission();
+      await android?.requestExactAlarmsPermission();
       await _createNotificationChannels(android);
     }
 
@@ -539,13 +540,6 @@ class NotificationService {
     await init();
     await requestPermissions();
 
-    if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.requestNotificationsPermission();
-      await android?.requestExactAlarmsPermission();
-    }
-
     final prefs = await SharedPreferences.getInstance();
     final isAr = prefs.getString('locale') == 'ar';
     final title = isAr ? titleAr : titleEn;
@@ -597,11 +591,6 @@ class NotificationService {
     bool useAthanSound = false,
   }) async {
     await init();
-    if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.requestExactAlarmsPermission();
-    }
 
     final prefs = await SharedPreferences.getInstance();
     final isAr = prefs.getString('locale') == 'ar';
