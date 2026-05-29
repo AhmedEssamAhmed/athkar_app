@@ -198,6 +198,10 @@ class _PersonalRemindersScreenState extends State<PersonalRemindersScreen> {
 
 const _prayerOptions = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
+String _fallbackText(String preferred, String fallback) {
+  return preferred.trim().isNotEmpty ? preferred : fallback;
+}
+
 const _prayerNames = {
   'fajr': ('Fajr', 'الفجر'),
   'dhuhr': ('Dhuhr', 'الظهر'),
@@ -280,7 +284,9 @@ class _PersonalNotificationTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isAr ? notification.titleAr : notification.titleEn,
+                isAr
+                    ? _fallbackText(notification.titleAr, notification.titleEn)
+                    : _fallbackText(notification.titleEn, notification.titleAr),
                 style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
@@ -363,9 +369,9 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
     final existing = widget.existing;
     if (existing != null) {
       if (widget.isAr) {
-        _titleController.text = existing.titleAr;
+        _titleController.text = _fallbackText(existing.titleAr, existing.titleEn);
       } else {
-        _titleController.text = existing.titleEn;
+        _titleController.text = _fallbackText(existing.titleEn, existing.titleAr);
       }
       if (existing.basePrayer != null) {
         _usePrayerTime = true;
@@ -537,8 +543,8 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
             if (_titleController.text.isEmpty) return;
             final title = _titleController.text.trim();
             widget.onSaved(
-              isAr ? '' : title,
-              isAr ? title : '',
+              title,
+              title,
               _fixedTime.hour,
               _fixedTime.minute,
               _usePrayerTime ? _selectedPrayer : null,
