@@ -157,7 +157,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
                             color: active
-                                ? AppColors.goldenAccent
+                                ? AppColors.gold
                                 : cs.outlineVariant.withAlpha(100),
                           ),
                         );
@@ -342,7 +342,7 @@ class _FloatingChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColors.goldenAccent),
+          Icon(icon, size: 18, color: AppColors.gold),
           const SizedBox(width: 8),
           Text(label,
               style: AppTypography.labelLarge.copyWith(color: cs.onSurface)),

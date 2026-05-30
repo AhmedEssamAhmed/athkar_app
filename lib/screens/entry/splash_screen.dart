@@ -122,13 +122,13 @@ class _SplashScreenState extends State<SplashScreen>
                     color: Colors.white.withAlpha(18),
                     border: Border.all(color: Colors.white.withAlpha(30), width: 1.5),
                     boxShadow: [
-                      BoxShadow(color: AppColors.goldenAccent.withAlpha(40),
+                      BoxShadow(color: AppColors.gold.withAlpha(40),
                           blurRadius: 40, spreadRadius: 8),
                     ],
                   ),
                   child: ShaderMask(
                     shaderCallback: (r) => const LinearGradient(
-                      colors: [AppColors.goldenAccent, Color(0xFFFFF3D6)],
+                      colors: [AppColors.gold, Color(0xFFFFF3D6)],
                     ).createShader(r),
                     child: const Icon(Icons.auto_awesome_rounded,
                         size: 56, color: Colors.white),
@@ -170,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
                 opacity: _subtitleOpacity,
                 child: Text('أذكارك اليومية في مكان واحد',
                     style: AppTypography.arabicBody.copyWith(
-                        color: AppColors.goldenAccent.withAlpha(200),
+                        color: AppColors.gold.withAlpha(200),
                         fontSize: 18),
                     textDirection: TextDirection.rtl),
               ),
@@ -183,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Container(
                   width: 48, height: 3,
                   decoration: BoxDecoration(
-                    color: AppColors.goldenAccent.withAlpha(100),
+                    color: AppColors.gold.withAlpha(100),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

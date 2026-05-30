@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/services/mosque_service.dart';
-import 'package:geolocator/geolocator.dart';
+import '../../core/services/location_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MosquesScreen extends StatefulWidget {
@@ -31,37 +32,20 @@ class _MosquesScreenState extends State<MosquesScreen> {
       _isLoading = true;
       _error = null;
     });
-    
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Location services are disabled. Please enable GPS.');
-      }
+      final result = await LocationService().resolve();
+      if (!result.isSuccess) throw Exception(result.error ?? 'Could not determine location');
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
-        }
-      }
-      
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permissions are permanently denied.');
-      } 
+      final data = await _mosqueService.fetchNearby(
+        lat: result.latitude,
+        lng: result.longitude,
+      );
 
-       Position position = await Geolocator.getCurrentPosition(
-         locationSettings: const LocationSettings(
-           accuracy: LocationAccuracy.high,
-         ),
-       );
-      final lat = position.latitude;
-      final lng = position.longitude;
-
-      final data = await _mosqueService.fetchNearby(lat: lat, lng: lng);
-      
       for (var m in data) {
-        m.distance = Geolocator.distanceBetween(lat, lng, m.lat, m.lng);
+        m.distance = Geolocator.distanceBetween(
+          result.latitude, result.longitude, m.lat, m.lng,
+        );
       }
       data.sort((a, b) => a.distance.compareTo(b.distance));
 

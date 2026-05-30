@@ -6,6 +6,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'prayer_time_service.dart';
+
 enum NotificationCategory {
   prayer,
   duha,
@@ -122,7 +124,6 @@ class NotificationService {
         android: androidSettings,
         iOS: iosSettings,
       ),
-      onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
     if (Platform.isAndroid) {
@@ -167,8 +168,6 @@ class NotificationService {
     );
   }
 
-  void _onNotificationTap(NotificationResponse response) {}
-
   Future<void> showTestNotification({
     required String titleEn,
     required String titleAr,
@@ -205,19 +204,6 @@ class NotificationService {
     );
   }
 
-  Future<void> requestPermissions() async {
-    if (Platform.isIOS) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-    }
-  }
-
   Future<List<ScheduledNotification>> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(_prefsKey) ?? [];
@@ -239,6 +225,32 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     final data = notifications.map((n) => jsonEncode(n.toJson())).toList();
     await prefs.setStringList(_prefsKey, data);
+  }
+
+  Future<void> reschedulePrayerRelativeNotifications(
+    Map<String, DateTime> prayerTimes,
+  ) async {
+    final notifications = await getNotifications();
+    for (final n in notifications) {
+      if (n.category != NotificationCategory.personal) continue;
+      if (n.basePrayer == null || n.minutesAfterPrayer == null) continue;
+
+      final prayerTime = prayerTimes[n.basePrayer];
+      if (prayerTime == null) continue;
+
+      final actualTime = n.isBeforePrayer == true
+          ? prayerTime.subtract(Duration(minutes: n.minutesAfterPrayer!))
+          : prayerTime.add(Duration(minutes: n.minutesAfterPrayer!));
+
+      await cancelNotification('personal_${n.id}');
+      await _scheduleDaily(
+        id: _hashString('personal_${n.id}'),
+        titleEn: n.titleEn,
+        titleAr: n.titleAr,
+        hour: actualTime.hour,
+        minute: actualTime.minute,
+      );
+    }
   }
 
   Future<void> schedulePrayerNotifications(
@@ -315,8 +327,7 @@ class NotificationService {
   }
 
   Future<void> scheduleMidnightNotification(DateTime maghribTime, DateTime fajrTime) async {
-    final sunsetToNextFajr = fajrTime.add(const Duration(days: 1)).difference(maghribTime);
-    final midnight = maghribTime.add(sunsetToNextFajr ~/ 2);
+    final midnight = PrayerTimeService.midnightFor(maghribTime, fajrTime);
     await _scheduleDaily(
       id: _hashString('midnight'),
       titleEn: 'Midnight',
@@ -327,8 +338,7 @@ class NotificationService {
   }
 
   Future<void> scheduleLastThirdNotification(DateTime maghribTime, DateTime fajrTime) async {
-    final sunsetToNextFajr = fajrTime.add(const Duration(days: 1)).difference(maghribTime);
-    final lastThird = maghribTime.add((sunsetToNextFajr * 2) ~/ 3);
+    final lastThird = PrayerTimeService.lastThirdFor(maghribTime, fajrTime);
     await _scheduleDaily(
       id: _hashString('last_third'),
       titleEn: 'Last Third of Night',
@@ -339,8 +349,7 @@ class NotificationService {
   }
 
   Future<void> scheduleFourthSixthNotification(DateTime maghribTime, DateTime fajrTime) async {
-    final sunsetToNextFajr = fajrTime.add(const Duration(days: 1)).difference(maghribTime);
-    final fourthSixth = maghribTime.add((sunsetToNextFajr * 3) ~/ 6);
+    final fourthSixth = PrayerTimeService.fourthSixthFor(maghribTime, fajrTime);
     await _scheduleDaily(
       id: _hashString('fourth_sixth'),
       titleEn: 'Fourth Sixth of Night',
@@ -476,7 +485,7 @@ class NotificationService {
     notifications.add(notification);
     await saveNotifications(notifications);
 
-    await _schedulePersonalDaily(
+    await _scheduleDaily(
       id: _hashString('personal_$id'),
       titleEn: titleEn,
       titleAr: titleAr,
@@ -514,7 +523,7 @@ class NotificationService {
     ));
     await saveNotifications(notifications);
 
-    await _schedulePersonalDaily(
+    await _scheduleDaily(
       id: _hashString('personal_$id'),
       titleEn: titleEn,
       titleAr: titleAr,
@@ -532,62 +541,6 @@ class NotificationService {
     final notifications = await getNotifications();
     notifications.removeWhere((n) => n.id == scheduledId.replaceFirst('personal_', ''));
     await saveNotifications(notifications);
-  }
-
-  Future<void> cancelAll() async {
-    await _plugin.cancelAll();
-  }
-
-  Future<void> _schedulePersonalDaily({
-    required int id,
-    required String titleEn,
-    required String titleAr,
-    String bodyEn = '',
-    String bodyAr = '',
-    required int hour,
-    required int minute,
-  }) async {
-    await init();
-    await requestPermissions();
-
-    final prefs = await SharedPreferences.getInstance();
-    final isAr = prefs.getString('locale') == 'ar';
-    final title = isAr ? titleAr : titleEn;
-    final body = isAr ? bodyAr : bodyEn;
-
-    final now = DateTime.now();
-    var target = DateTime(now.year, now.month, now.day, hour, minute);
-    if (!target.isAfter(now)) {
-      target = target.add(const Duration(days: 1));
-    }
-
-    final scheduledDate = tz.TZDateTime.from(target, tz.local);
-
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'athkar_notifications',
-          'Athkar Notifications',
-          channelDescription: 'General app notifications',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'titleAr:$titleAr,bodyAr:$bodyAr',
-    );
   }
 
   Future<void> _scheduleDaily({

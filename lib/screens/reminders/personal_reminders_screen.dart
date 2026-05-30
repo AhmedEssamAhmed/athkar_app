@@ -7,6 +7,8 @@ import '../../core/widgets/decorative_background.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/prayer_time_service.dart';
+import '../../core/constants/prayer_names.dart';
 
 class PersonalRemindersScreen extends StatefulWidget {
   const PersonalRemindersScreen({super.key});
@@ -196,16 +198,6 @@ class _PersonalRemindersScreenState extends State<PersonalRemindersScreen> {
   }
 }
 
-const _prayerOptions = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
-
-const _prayerNames = {
-  'fajr': ('Fajr', 'الفجر'),
-  'dhuhr': ('Dhuhr', 'الظهر'),
-  'asr': ('Asr', 'العصر'),
-  'maghrib': ('Maghrib', 'المغرب'),
-  'isha': ('Isha', 'العشاء'),
-};
-
 class _PersonalNotificationTile extends StatelessWidget {
   final ScheduledNotification notification;
   final bool isAr;
@@ -222,9 +214,9 @@ class _PersonalNotificationTile extends StatelessWidget {
     final hour = notification.hour;
     final minute = notification.minute;
     if (hour == null || minute == null) return '--:--';
-    final hour12 = hour == 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    final period = hour < 12 ? (isAr ? 'صباحاً' : 'AM') : (isAr ? 'مساءً' : 'PM');
-    return '$hour12:${minute.toString().padLeft(2, '0')} $period';
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, hour, minute);
+    return PrayerTimeService().formatTime(dt, isArabic: isAr);
   }
 
   @override
@@ -233,17 +225,17 @@ class _PersonalNotificationTile extends StatelessWidget {
 
     String timeText;
     if (notification.basePrayer != null && notification.minutesAfterPrayer != null) {
-      final prayerName = _prayerNames[notification.basePrayer];
+      final prayerName = PrayerNames.names[notification.basePrayer];
       final mins = notification.minutesAfterPrayer!;
       final before = notification.isBeforePrayer == true;
       if (isAr) {
         timeText = before
-            ? 'قبل $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}'
-            : 'بعد $mins دقيقة من ${prayerName?.$2 ?? notification.basePrayer}';
+            ? 'قبل $mins دقيقة من ${prayerName?.ar ?? notification.basePrayer}'
+            : 'بعد $mins دقيقة من ${prayerName?.ar ?? notification.basePrayer}';
       } else {
         timeText = before
-            ? '$mins min before ${prayerName?.$1 ?? notification.basePrayer}'
-            : '$mins min after ${prayerName?.$1 ?? notification.basePrayer}';
+            ? '$mins min before ${prayerName?.en ?? notification.basePrayer}'
+            : '$mins min after ${prayerName?.en ?? notification.basePrayer}';
       }
     } else {
       timeText = _formatFixedTime();
@@ -413,39 +405,49 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
             Row(
               children: [
                 Expanded(
-                  child: RadioListTile<bool>(
+                  child: ListTile(
                     title: Text(isAr ? 'وقت محدد' : 'Fixed Time', style: AppTypography.bodyMedium),
-                    value: false,
-                    groupValue: _usePrayerTime,
-                    onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    leading: Radio<bool>(
+                      value: false,
+                      // ignore: deprecated_member_use
+                      groupValue: _usePrayerTime,
+                      // ignore: deprecated_member_use
+                      onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    ),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
+                    onTap: () => setState(() => _usePrayerTime = false),
                   ),
                 ),
                 Expanded(
-                  child: RadioListTile<bool>(
+                  child: ListTile(
                     title: Text(isAr ? 'حسب الصلاة' : 'By Prayer', style: AppTypography.bodyMedium),
-                    value: true,
-                    groupValue: _usePrayerTime,
-                    onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    leading: Radio<bool>(
+                      value: true,
+                      // ignore: deprecated_member_use
+                      groupValue: _usePrayerTime,
+                      // ignore: deprecated_member_use
+                      onChanged: (v) => setState(() => _usePrayerTime = v!),
+                    ),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
+                    onTap: () => setState(() => _usePrayerTime = true),
                   ),
                 ),
               ],
             ),
             if (_usePrayerTime) ...[
               DropdownButtonFormField<String>(
-                value: _selectedPrayer,
+                initialValue: _selectedPrayer,
                 decoration: InputDecoration(
                   labelText: isAr ? 'الصلاة' : 'Prayer',
                   border: const OutlineInputBorder(),
                 ),
-                items: _prayerOptions.map((p) {
-                  final names = _prayerNames[p]!;
+                items: PrayerNames.keys.where((k) => k != 'sunrise').map((p) {
+                  final names = PrayerNames.names[p]!;
                   return DropdownMenuItem(
                     value: p,
-                    child: Text(isAr ? names.$2 : names.$1),
+                    child: Text(isAr ? names.ar : names.en),
                   );
                 }).toList(),
                 onChanged: (v) => setState(() => _selectedPrayer = v!),
@@ -537,8 +539,8 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
             if (_titleController.text.isEmpty) return;
             final title = _titleController.text.trim();
             widget.onSaved(
-              isAr ? '' : title,
-              isAr ? title : '',
+              isAr ? (widget.existing?.titleEn ?? title) : title,
+              isAr ? title : (widget.existing?.titleAr ?? title),
               _fixedTime.hour,
               _fixedTime.minute,
               _usePrayerTime ? _selectedPrayer : null,

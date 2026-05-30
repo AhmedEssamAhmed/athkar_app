@@ -1,15 +1,12 @@
 """
-Noor Athkar – FastAPI Backend (Local Development)
+Noor Athkar – FastAPI Backend
 
-This server acts as a secure proxy for external APIs and a data
-service for the Flutter client. API keys are read from a `.env`
-file and never exposed to the client.
+Serves as a proxy for external APIs used by the Flutter client.
+API keys are read from a `.env` file and never exposed to the client.
 
 Endpoints:
   GET  /                          → Health check
-  GET  /api/mosques/nearby        → Google Places proxy (nearby mosques)
-  GET  /api/location/geocode      → Reverse-geocode (lat/lng → city/country)
-  GET  /api/quran/juz/{number}    → Quran data for a single Juz
+  GET  /api/mosques/nearby        → Overpass API proxy (nearby mosques)
 
 Run locally:
   cd backend
@@ -18,7 +15,6 @@ Run locally:
   uvicorn main:app --reload --port 8000
 """
 
-import os
 from typing import Optional
 
 import httpx
@@ -38,9 +34,11 @@ app = FastAPI(
 )
 
 # Allow the Flutter web app to call this server during development
+# TODO: Restrict to specific origins before production deployment,
+# e.g. allow_origins=["https://noorathkar.com", "https://www.noorathkar.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -140,101 +138,6 @@ async def nearby_mosques(
             )
             
     return results
-
-
-# ══════════════════════════════════════════════════════════════════
-# 2.  Reverse Geocode  (lat/lng → City, Country)
-# ══════════════════════════════════════════════════════════════════
-
-class GeoResult(BaseModel):
-    city: str
-    country: str
-    formatted: str
-
-
-@app.get("/api/location/geocode", response_model=GeoResult)
-async def reverse_geocode(
-    lat: float = Query(...),
-    lng: float = Query(...),
-):
-    """Convert coordinates to a human-readable city + country using Nominatim."""
-    url = "https://nominatim.openstreetmap.org/reverse"
-    params = {
-        "lat": lat,
-        "lon": lng,
-        "format": "json",
-        "addressdetails": 1,
-    }
-    headers = {
-        "User-Agent": "NoorAthkarApp/1.0 (contact@noorathkar.com)"
-    }
-
-    resp = await http_client.get(url, params=params, headers=headers)
-    
-    if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Nominatim API error: {resp.status_code}")
-        
-    data = resp.json()
-    address = data.get("address", {})
-    
-    city = address.get("city") or address.get("town") or address.get("village") or address.get("suburb") or ""
-    country = address.get("country", "")
-    formatted = data.get("display_name", "")
-
-    if not city and not country:
-        raise HTTPException(status_code=404, detail="Location not found")
-
-    return GeoResult(
-        city=city,
-        country=country,
-        formatted=formatted or f"{city}, {country}",
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# 3.  Quran Data  (proxy to Alquran.cloud)
-# ══════════════════════════════════════════════════════════════════
-
-class Ayah(BaseModel):
-    number: int
-    number_in_surah: int
-    surah_number: int
-    surah_name_ar: str
-    surah_name_en: str
-    text_ar: str
-    page: int
-    juz: int
-
-
-@app.get("/api/quran/juz/{juz_number}", response_model=list[Ayah])
-async def get_juz(juz_number: int):
-    """Fetch all Ayahs for a given Juz (1-30) from Alquran.cloud."""
-    if juz_number < 1 or juz_number > 30:
-        raise HTTPException(status_code=400, detail="Juz must be 1–30")
-
-    url = f"https://api.alquran.cloud/v1/juz/{juz_number}/ar.alafasy"
-    resp = await http_client.get(url)
-    data = resp.json()
-
-    if data.get("code") != 200:
-        raise HTTPException(status_code=502, detail="Quran API error")
-
-    ayahs: list[Ayah] = []
-    for a in data["data"]["ayahs"]:
-        ayahs.append(
-            Ayah(
-                number=a["number"],
-                number_in_surah=a["numberInSurah"],
-                surah_number=a["surah"]["number"],
-                surah_name_ar=a["surah"]["name"],
-                surah_name_en=a["surah"]["englishName"],
-                text_ar=a["text"],
-                page=a["page"],
-                juz=a["juz"],
-            )
-        )
-
-    return ayahs
 
 
 # ══════════════════════════════════════════════════════════════════

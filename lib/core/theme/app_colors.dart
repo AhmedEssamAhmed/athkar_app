@@ -92,7 +92,7 @@ class AppColors {
   );
 
   // ──────────────────────── Legacy Accents (keep for compat) ────────
-  static const Color goldenAccent = Color(0xFFC99B3B);
+  static const Color goldenAccent = gold;
   static const Color mutedSage = Color(0xFF8FA99B);
 
   // ──────────────────────── Decorative ─────────────────────────────

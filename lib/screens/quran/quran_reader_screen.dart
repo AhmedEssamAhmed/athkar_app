@@ -323,12 +323,12 @@ class _PageOrnament extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Container(height: 1, color: AppColors.goldenAccent.withAlpha(60))),
+        Expanded(child: Container(height: 1, color: AppColors.gold.withAlpha(60))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Icon(Icons.auto_awesome, size: 14, color: AppColors.goldenAccent.withAlpha(100)),
+          child: Icon(Icons.auto_awesome, size: 14, color: AppColors.gold.withAlpha(100)),
         ),
-        Expanded(child: Container(height: 1, color: AppColors.goldenAccent.withAlpha(60))),
+        Expanded(child: Container(height: 1, color: AppColors.gold.withAlpha(60))),
       ],
     );
   }
@@ -438,11 +438,11 @@ class _BottomBar extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.goldenAccent,
+                color: AppColors.gold,
                 borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.goldenAccent.withAlpha(60),
+                    color: AppColors.gold.withAlpha(60),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -467,7 +467,7 @@ class _BottomBar extends StatelessWidget {
                       value: currentPage.toDouble(),
                       min: 1,
                       max: totalPages.toDouble(),
-                      activeColor: AppColors.goldenAccent,
+                      activeColor: AppColors.gold,
                       inactiveColor: AppColors.mutedSage.withAlpha(60),
                       label: '$currentPage',
                       divisions: totalPages - 1,
@@ -543,7 +543,7 @@ class _JumpDialogState extends State<_JumpDialog> with SingleTickerProviderState
               controller: _tabCtrl,
               labelColor: cs.primary,
               unselectedLabelColor: cs.onSurfaceVariant,
-              indicatorColor: AppColors.goldenAccent,
+              indicatorColor: AppColors.gold,
               isScrollable: true,
               tabAlignment: TabAlignment.center,
               tabs: [
@@ -603,8 +603,8 @@ class _JumpDialogState extends State<_JumpDialog> with SingleTickerProviderState
           dense: true,
           leading: CircleAvatar(
             radius: 16,
-            backgroundColor: AppColors.goldenAccent.withAlpha(40),
-            child: Text('${j.number}', style: AppTypography.labelMedium.copyWith(color: AppColors.goldenAccent)),
+            backgroundColor: AppColors.gold.withAlpha(40),
+            child: Text('${j.number}', style: AppTypography.labelMedium.copyWith(color: AppColors.gold)),
           ),
           title: Text(isAr ? 'الجزء ${j.number}' : 'Juz ${j.number}', style: AppTypography.bodyMedium),
           subtitle: Text(

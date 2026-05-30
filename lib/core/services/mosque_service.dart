@@ -1,4 +1,5 @@
-import 'api_client.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 /// Data class for a mosque returned by the backend.
 class Mosque {
@@ -31,9 +32,10 @@ class Mosque {
 
 /// Communicates with the FastAPI `/api/mosques/nearby` endpoint.
 class MosqueService {
-  final ApiClient _api;
+  static const String _baseUrl = 'http://192.168.0.89:8000';
+  final http.Client _client;
 
-  MosqueService({ApiClient? api}) : _api = api ?? ApiClient();
+  MosqueService({http.Client? client}) : _client = client ?? http.Client();
 
   /// Fetch mosques near [lat], [lng] within [radiusMetres].
   Future<List<Mosque>> fetchNearby({
@@ -41,12 +43,23 @@ class MosqueService {
     required double lng,
     int radiusMetres = 3000,
   }) async {
-    final data = await _api.get('/api/mosques/nearby', queryParams: {
-      'lat': lat.toString(),
-      'lng': lng.toString(),
-      'radius': radiusMetres.toString(),
-    });
-
+    final uri = Uri.parse('$_baseUrl/api/mosques/nearby').replace(
+      queryParameters: {
+        'lat': lat.toString(),
+        'lng': lng.toString(),
+        'radius': radiusMetres.toString(),
+      },
+    );
+    final response = await _client.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to fetch mosques: ${response.statusCode}');
+    }
+    final data = json.decode(response.body);
     return (data as List).map((e) => Mosque.fromJson(e)).toList();
   }
+
+  void dispose() => _client.close();
 }

@@ -67,7 +67,7 @@ class _QuranScreenState extends State<QuranScreen>
         ],
         bottom: TabBar(
           controller: _tabCtrl,
-          indicatorColor: AppColors.goldenAccent,
+          indicatorColor: AppColors.gold,
           labelColor: cs.primary,
           unselectedLabelColor: cs.onSurfaceVariant,
           tabs: [
@@ -177,13 +177,13 @@ class _JuzList extends StatelessWidget {
             leading: Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: AppColors.goldenAccent.withAlpha(30),
+                color: AppColors.gold.withAlpha(30),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text('${j.number}',
                     style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.goldenAccent, fontWeight: FontWeight.w700)),
+                        color: AppColors.gold, fontWeight: FontWeight.w700)),
               ),
             ),
             title: Text(
@@ -210,7 +210,7 @@ class _JuzList extends StatelessWidget {
             ),
             trailing: Icon(
               isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-              color: AppColors.goldenAccent,
+              color: AppColors.gold,
             ),
             onTap: () => onTap(j.startPage),
           ),
@@ -254,11 +254,11 @@ class _PageGrid extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: isJuzStart
-                    ? AppColors.goldenAccent.withAlpha(25)
+                    ? AppColors.gold.withAlpha(25)
                     : cs.surfaceContainerHighest.withAlpha(40),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 border: isJuzStart
-                    ? Border.all(color: AppColors.goldenAccent.withAlpha(80), width: 1)
+                    ? Border.all(color: AppColors.gold.withAlpha(80), width: 1)
                     : null,
               ),
               child: Column(
@@ -267,7 +267,7 @@ class _PageGrid extends StatelessWidget {
                   Text(
                     '$pageNum',
                     style: AppTypography.labelLarge.copyWith(
-                      color: isJuzStart ? AppColors.goldenAccent : cs.onSurface,
+                      color: isJuzStart ? AppColors.gold : cs.onSurface,
                       fontWeight: isJuzStart ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
@@ -406,7 +406,7 @@ class _QuickJumpSheetState extends State<_QuickJumpSheet> {
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.marginMobile),
       child: Card(
         child: ListTile(
-          leading: Icon(Icons.menu_book_rounded, color: AppColors.goldenAccent),
+          leading: Icon(Icons.menu_book_rounded, color: AppColors.gold),
           title: Text(
             isAr ? 'انتقال إلى الصفحة $pageNum' : 'Jump to page $pageNum',
             style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),

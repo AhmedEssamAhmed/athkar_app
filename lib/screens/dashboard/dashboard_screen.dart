@@ -10,6 +10,8 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/decorative_background.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/prayer_time_provider.dart';
+import '../../core/services/prayer_time_service.dart';
+import '../../core/constants/prayer_names.dart';
 import '../../main.dart';
 import '../qibla/qibla_screen.dart';
 import '../mosques/mosques_screen.dart';
@@ -471,10 +473,13 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      if (now.minute != _now.minute) {
         widget.provider.checkForNewDay();
-        setState(() => _now = DateTime.now());
       }
+      _now = now;
+      setState(() {});
     });
   }
 
@@ -496,16 +501,8 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
     };
   }
 
-  String _formatTime(DateTime dt) {
-    final hour = dt.hour;
-    final m = dt.minute.toString().padLeft(2, '0');
-    final isArabic = widget.isArabic;
-    final period = hour < 12
-        ? (isArabic ? 'صباحاً' : 'AM')
-        : (isArabic ? 'مساءً' : 'PM');
-    final h12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    return '$h12:$m $period';
-  }
+  String _formatTime(DateTime dt) =>
+      PrayerTimeService().formatTime(dt, isArabic: widget.isArabic);
 
   Duration _timeUntil(DateTime? target) {
     if (target == null) return Duration.zero;
@@ -710,15 +707,6 @@ class _CurrentPrayerCardState extends State<_CurrentPrayerCard> {
 // Prayer Times List
 // ─────────────────────────────────────────────
 
-const _prayerIconMap = <String, IconData>{
-  'Fajr': Icons.wb_sunny_rounded,
-  'Sunrise': Icons.sunny,
-  'Dhuhr': Icons.wb_cloudy_rounded,
-  'Asr': Icons.cloud_rounded,
-  'Maghrib': Icons.nightlight_round,
-  'Isha': Icons.nights_stay_rounded,
-};
-
 class _PrayerTimesList extends StatelessWidget {
   final List<PrayerTime> prayers;
   final bool isArabic;
@@ -734,7 +722,7 @@ class _PrayerTimesList extends StatelessWidget {
       child: Column(
         children: prayers.map((prayer) {
           final isCurrent = prayer.isCurrent;
-          final icon = _prayerIconMap[prayer.name] ?? Icons.schedule_rounded;
+          final icon = PrayerNames.icons[prayer.name] ?? Icons.schedule_rounded;
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),

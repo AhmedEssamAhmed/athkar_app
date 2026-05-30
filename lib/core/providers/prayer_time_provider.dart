@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/prayer_time_service.dart';
 import '../services/notification_service.dart';
+import '../services/location_service.dart';
 import '../../modules/prayer_module.dart';
 import '../providers/settings_provider.dart';
 
@@ -50,111 +49,36 @@ class PrayerTimeProvider extends ChangeNotifier {
   DateTime? get sunriseTime => _prayerService.sunriseTime;
 
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedLat = prefs.getDouble('user_lat');
-    final savedLng = prefs.getDouble('user_lng');
-
-    if (savedLat != null && savedLng != null) {
-      _prayerService.setCoordinates(savedLat, savedLng);
+    final cached = await LocationService().tryGetCached();
+    if (cached != null) {
+      _prayerService.setCoordinates(cached.latitude, cached.longitude);
       _updatePrayerTimes();
       notifyListeners();
     }
-
     await _loadPrayerTimes();
   }
 
   Future<void> _loadPrayerTimes() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedLat = prefs.getDouble('user_lat');
-      final savedLng = prefs.getDouble('user_lng');
+      final locService = LocationService();
+      final cached = await locService.tryGetCached();
+      final result = await locService.resolve();
 
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      final canUseGps = serviceEnabled &&
-          (permission == LocationPermission.whileInUse ||
-              permission == LocationPermission.always);
-
-      bool gotPosition = false;
-
-      if (canUseGps) {
-        try {
-          final lastPos = await Geolocator.getLastKnownPosition();
-          if (lastPos != null) {
-            _prayerService.setCoordinates(lastPos.latitude, lastPos.longitude);
-            await prefs.setDouble('user_lat', lastPos.latitude);
-            await prefs.setDouble('user_lng', lastPos.longitude);
-            _locationName = await _resolveLocationName(
-              lastPos.latitude,
-              lastPos.longitude,
-            );
-            _error = null;
-            gotPosition = true;
-          }
-        } catch (_) {}
-
-        if (!gotPosition) {
-          try {
-            final position = await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(
-                accuracy: LocationAccuracy.high,
-                timeLimit: Duration(seconds: 8),
-              ),
-            ).timeout(const Duration(seconds: 10));
-            _prayerService.setCoordinates(position.latitude, position.longitude);
-            await prefs.setDouble('user_lat', position.latitude);
-            await prefs.setDouble('user_lng', position.longitude);
-            _locationName = await _resolveLocationName(
-              position.latitude,
-              position.longitude,
-            );
-            _error = null;
-            gotPosition = true;
-          } catch (_) {
-            _error = 'GPS couldn\'t get a fix — go outdoors or check GPS';
-            try {
-              final position = await Geolocator.getCurrentPosition(
-                locationSettings: const LocationSettings(
-                  accuracy: LocationAccuracy.medium,
-                  timeLimit: Duration(seconds: 5),
-                ),
-              );
-              _prayerService.setCoordinates(position.latitude, position.longitude);
-              await prefs.setDouble('user_lat', position.latitude);
-              await prefs.setDouble('user_lng', position.longitude);
-              _locationName = await _resolveLocationName(
-                position.latitude,
-                position.longitude,
-              );
-              _error = null;
-              gotPosition = true;
-            } catch (_) {}
-          }
-        }
+      if (result.isSuccess) {
+        _prayerService.setCoordinates(result.latitude, result.longitude);
+        _locationName = result.cityName;
+        _error = null;
+        _updatePrayerTimes();
       } else {
-        if (!serviceEnabled) {
-          _error = 'GPS is disabled — enable location in device settings';
-        } else if (permission == LocationPermission.deniedForever) {
-          _error = 'Location permission permanently denied — enable in app settings';
-        } else if (permission == LocationPermission.denied) {
-          _error = 'Location permission denied — grant permission to detect location';
-        }
-      }
-
-      if (!gotPosition) {
-        if (savedLat != null && savedLng != null) {
-          _prayerService.setCoordinates(savedLat, savedLng);
-          _locationName = await _resolveLocationName(savedLat, savedLng);
-          _error = 'Using saved location — enable GPS for accurate times';
+        _error = result.error;
+        if (cached != null) {
+          _prayerService.setCoordinates(cached.latitude, cached.longitude);
+          _locationName = cached.cityName;
+          _updatePrayerTimes();
         } else {
           _prayerService.setDefaultLocation();
-          _locationName = _prayerService.getCityName();
-          _error = 'Location unavailable — enable GPS and grant location permission';
+          _locationName = 'Makkah';
         }
-        _updatePrayerTimes();
       }
     } catch (e) {
       _error = e.toString();
@@ -306,14 +230,21 @@ class PrayerTimeProvider extends ChangeNotifier {
 
     final prayerTimes = <String, DateTime>{};
     if (fajr != null) prayerTimes['fajr'] = fajr;
-    if (sunrise != null) prayerTimes['sunrise'] = sunrise;
-    if (_prayerService.dhuhrTime != null)
+    if (sunrise != null) {
+      prayerTimes['sunrise'] = sunrise;
+    }
+    if (_prayerService.dhuhrTime != null) {
       prayerTimes['dhuhr'] = _prayerService.dhuhrTime!;
-    if (_prayerService.asrTime != null)
+    }
+    if (_prayerService.asrTime != null) {
       prayerTimes['asr'] = _prayerService.asrTime!;
-    if (maghrib != null) prayerTimes['maghrib'] = maghrib;
-    if (_prayerService.ishaTime != null)
+    }
+    if (maghrib != null) {
+      prayerTimes['maghrib'] = maghrib;
+    }
+    if (_prayerService.ishaTime != null) {
       prayerTimes['isha'] = _prayerService.ishaTime!;
+    }
 
     for (final name in prayerTimes.keys) {
       await _notificationService.cancelNotification('prayer_$name');
@@ -383,6 +314,12 @@ class PrayerTimeProvider extends ChangeNotifier {
     try {
       await _notificationService.scheduleSurahKahfReminder();
     } catch (_) {}
+
+    if (prayerTimes.isNotEmpty) {
+      try {
+        await _notificationService.reschedulePrayerRelativeNotifications(prayerTimes);
+      } catch (_) {}
+    }
   }
 
   void checkForNewDay() {
@@ -401,47 +338,9 @@ class PrayerTimeProvider extends ChangeNotifier {
 
   Future<void> setLocation(double lat, double lng) async {
     _prayerService.setCoordinates(lat, lng);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('user_lat', lat);
-    await prefs.setDouble('user_lng', lng);
-    _locationName = await _resolveLocationName(lat, lng);
-    _updatePrayerTimes();
-    await _scheduleAllNotifications();
-    notifyListeners();
-  }
-
-  Future<String> _resolveLocationName(double lat, double lng) async {
-    final fallback = '${lat.toStringAsFixed(2)}, ${lng.toStringAsFixed(2)}';
-
-    try {
-      final places = await placemarkFromCoordinates(lat, lng);
-      if (places.isEmpty) return fallback;
-
-      final place = places.first;
-      final city = [
-        place.locality,
-        place.subAdministrativeArea,
-        place.administrativeArea,
-        place.country,
-      ].firstWhere(
-        (value) => value != null && value.trim().isNotEmpty,
-        orElse: () => null,
-      );
-      final country = place.country;
-
-      if (city == null) return fallback;
-      if (country == null || country.trim().isEmpty || city == country) {
-        return city;
-      }
-
-      return '$city, $country';
-    } catch (_) {
-      return fallback;
-    }
-  }
-
-  Future<void> updateHijriMethod(HijriCalendarMethod method) async {
-    _prayerService.setHijriMethod(method);
+    final locService = LocationService();
+    await locService.cacheLocation(lat, lng);
+    _locationName = await locService.resolveCityName(lat, lng);
     _updatePrayerTimes();
     await _scheduleAllNotifications();
     notifyListeners();

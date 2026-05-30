@@ -70,14 +70,14 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                       painter: _RingPainter(
                           progress: t.progress,
                           track: AppColors.mutedSage.withAlpha(60),
-                          fill: AppColors.goldenAccent)),
+                          fill: AppColors.gold)),
                   Container(
                     width: 170, height: 170,
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: t.isComplete ? AppColors.goldenAccent : cs.primaryContainer,
+                        color: t.isComplete ? AppColors.gold : cs.primaryContainer,
                         boxShadow: [BoxShadow(
-                            color: (t.isComplete ? AppColors.goldenAccent : cs.primary).withAlpha(40),
+                            color: (t.isComplete ? AppColors.gold : cs.primary).withAlpha(40),
                             blurRadius: 30, offset: const Offset(0, 8))]),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

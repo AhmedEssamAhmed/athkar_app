@@ -36,11 +36,11 @@ class AthkarCategoriesScreen extends StatelessWidget {
             Icons.menu_book_rounded,       // ruqya quran
           ];
           final colors = [
-            AppColors.goldenAccent,        // morning
+            AppColors.gold,        // morning
             cs.primary,                    // evening
             cs.primaryContainer,           // sleep
             cs.tertiary,                   // after prayer
-            AppColors.goldenAccent,        // travel
+            AppColors.gold,        // travel
             cs.primary,                    // home
             cs.tertiary,                   // food
             AppColors.mutedSage,           // bathroom
@@ -252,13 +252,13 @@ class _AthkarReaderScreenState extends State<AthkarReaderScreen> {
                       decoration: BoxDecoration(
                         color: done
                             ? cs.primary
-                            : AppColors.goldenAccent.withAlpha(30),
+                            : AppColors.gold.withAlpha(30),
                         borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                       ),
                       child: Text(
                         done ? (isAr ? '✓ تم' : '✓ Done') : '$current / $target',
                         style: AppTypography.titleLarge.copyWith(
-                          color: done ? cs.onPrimary : AppColors.goldenAccent,
+                          color: done ? cs.onPrimary : AppColors.gold,
                         ),
                       ),
                     ),

@@ -3,14 +3,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_compass/flutter_compass.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:geomag/geomag.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/settings_provider.dart';
-import '../../core/storage/hive_service.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/services/location_service.dart';
 
 /// Qibla Compass screen — shows real-time direction to Kaaba
 /// using the device magnetometer and GPS coordinates.
@@ -22,9 +22,8 @@ class QiblaScreen extends StatefulWidget {
 
 class _QiblaScreenState extends State<QiblaScreen>
     with SingleTickerProviderStateMixin {
-  // Kaaba coordinates
-  static const double _kaabaLat = 21.4225;
-  static const double _kaabaLng = 39.8262;
+  static const double _kaabaLat = AppConstants.kaabaLatitude;
+  static const double _kaabaLng = AppConstants.kaabaLongitude;
 
   double? _qiblaBearing; // degrees from north to Qibla
   double? _userLat;
@@ -46,12 +45,11 @@ class _QiblaScreenState extends State<QiblaScreen>
 
   Future<void> _initialize() async {
     // Try to load cached location first
-    final cachedLat = HiveService.getCachedValue('user_lat');
-    final cachedLng = HiveService.getCachedValue('user_lng');
-    if (cachedLat != null && cachedLng != null) {
-      _userLat = (cachedLat as num).toDouble();
-      _userLng = (cachedLng as num).toDouble();
-      _qiblaBearing = _calculateQiblaBearing(_userLat!, _userLng!);
+    final cached = await LocationService().tryGetCached();
+    if (cached != null) {
+      _userLat = cached.latitude;
+      _userLng = cached.longitude;
+      _qiblaBearing = _calculateQiblaBearing(cached.latitude, cached.longitude);
       _calculateDeclination();
     }
 
@@ -88,59 +86,21 @@ class _QiblaScreenState extends State<QiblaScreen>
 
   Future<void> _getLocation() async {
     try {
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (_qiblaBearing == null) {
+      final result = await LocationService().resolve();
+      if (result.isSuccess) {
+        _userLat = result.latitude;
+        _userLng = result.longitude;
+        _qiblaBearing = _calculateQiblaBearing(_userLat!, _userLng!);
+        _calculateDeclination();
+        if (mounted) setState(() {});
+      } else {
+        if (_qiblaBearing == null && mounted) {
           setState(() {
             _status = 'no_location';
-            _errorMsg = 'Location services are disabled';
+            _errorMsg = result.error ?? 'Could not determine location';
           });
         }
-        return;
       }
-
-      // Check permissions
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (_qiblaBearing == null) {
-            setState(() {
-              _status = 'no_location';
-              _errorMsg = 'Location permission denied';
-            });
-          }
-          return;
-        }
-      }
-      if (permission == LocationPermission.deniedForever) {
-        if (_qiblaBearing == null) {
-          setState(() {
-            _status = 'no_location';
-            _errorMsg = 'Location permission permanently denied';
-          });
-        }
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      _userLat = position.latitude;
-      _userLng = position.longitude;
-      _qiblaBearing = _calculateQiblaBearing(_userLat!, _userLng!);
-      _calculateDeclination();
-
-      // Cache location
-      await HiveService.cacheValue('user_lat', _userLat);
-      await HiveService.cacheValue('user_lng', _userLng);
-
-      if (mounted) setState(() {});
     } catch (e) {
       if (_qiblaBearing == null && mounted) {
         setState(() {
@@ -377,10 +337,10 @@ class _QiblaScreenState extends State<QiblaScreen>
                 Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.goldenAccent,
+                    color: AppColors.gold,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: AppColors.goldenAccent.withAlpha(60), blurRadius: 20),
+                      BoxShadow(color: AppColors.gold.withAlpha(60), blurRadius: 20),
                     ],
                   ),
                   child: const Icon(Icons.adjust_rounded, color: Colors.white, size: 26),

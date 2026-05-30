@@ -2,7 +2,7 @@ import 'package:adhan/adhan.dart';
 import 'package:hijri_date/hijri_date.dart' as hijri_pkg;
 
 import '../../modules/prayer_module.dart';
-import '../providers/settings_provider.dart';
+import '../constants/app_constants.dart';
 
 class PrayerTimeService {
   static final PrayerTimeService _instance = PrayerTimeService._internal();
@@ -13,11 +13,9 @@ class PrayerTimeService {
   PrayerTimes? _prayerTimes;
   DateTime? _date;
   DateTime? _calculationDate;
-  HijriCalendarMethod _hijriMethod = HijriCalendarMethod.ummAlQura;
 
-  static const double _defaultLatitude = 21.4225;
-  static const double _defaultLongitude = 39.8262;
-  static const String _defaultCity = 'Makkah';
+  static const double _defaultLatitude = AppConstants.kaabaLatitude;
+  static const double _defaultLongitude = AppConstants.kaabaLongitude;
 
   bool get isLocationSet => _coordinates != null;
 
@@ -29,12 +27,6 @@ class PrayerTimeService {
   void setDefaultLocation() {
     _coordinates = Coordinates(_defaultLatitude, _defaultLongitude);
     _calculatePrayerTimes();
-  }
-
-  void setHijriMethod(HijriCalendarMethod method) {
-    _hijriMethod = method;
-    // Note: The Hijri calculation currently uses the hijri_date package directly
-    // and doesn't use the _hijriMethod field. This is kept for future implementation.
   }
 
   bool get isNewDay {
@@ -87,9 +79,7 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 0, minute: 0);
     }
-    final sunsetToNextFajr =
-        fajr.add(const Duration(days: 1)).difference(maghrib);
-    return maghrib.add(sunsetToNextFajr ~/ 2);
+    return midnightFor(maghrib, fajr);
   }
 
   DateTime get lastThirdOfNightTime {
@@ -98,9 +88,7 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 2, minute: 0);
     }
-    final sunsetToNextFajr =
-        fajr.add(const Duration(days: 1)).difference(maghrib);
-    return maghrib.add((sunsetToNextFajr * 2) ~/ 3);
+    return lastThirdFor(maghrib, fajr);
   }
 
   DateTime get fourthSixthOfNightTime {
@@ -109,14 +97,25 @@ class PrayerTimeService {
     if (maghrib == null || fajr == null) {
       return DateTime.now().copyWith(hour: 2, minute: 0);
     }
-    final sunsetToNextFajr =
-        fajr.add(const Duration(days: 1)).difference(maghrib);
-    return maghrib.add((sunsetToNextFajr * 3) ~/ 6);
+    return fourthSixthFor(maghrib, fajr);
+  }
+
+  static DateTime midnightFor(DateTime maghrib, DateTime fajr) {
+    final night = fajr.add(const Duration(days: 1)).difference(maghrib);
+    return maghrib.add(night ~/ 2);
+  }
+
+  static DateTime lastThirdFor(DateTime maghrib, DateTime fajr) {
+    final night = fajr.add(const Duration(days: 1)).difference(maghrib);
+    return maghrib.add((night * 2) ~/ 3);
+  }
+
+  static DateTime fourthSixthFor(DateTime maghrib, DateTime fajr) {
+    final night = fajr.add(const Duration(days: 1)).difference(maghrib);
+    return maghrib.add((night * 3) ~/ 6);
   }
 
   HijriDate getHijriDate() {
-    // Store the selected method for potential future use in Hijri calculations
-    _hijriMethod; // Reference to suppress unused field warning
     final now = DateTime.now();
     final hijri = hijri_pkg.HijriDate.fromDate(now);
     return HijriDate(
@@ -163,9 +162,5 @@ class PrayerTimeService {
         hour < 12 ? (isArabic ? 'صباحاً' : 'AM') : (isArabic ? 'مساءً' : 'PM');
 
     return '$hour12:$minute $period';
-  }
-
-  String getCityName() {
-    return _defaultCity;
   }
 }

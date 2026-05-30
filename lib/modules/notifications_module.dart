@@ -150,7 +150,4 @@ class NotificationData {
         ),
       ];
 
-  static List<NotificationPreference> getByCategory(NotificationCategory category) {
-    return defaults().where((n) => n.category == category).toList();
-  }
 }
