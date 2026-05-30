@@ -30,7 +30,7 @@ load_dotenv()
 app = FastAPI(
     title="Noor Athkar API",
     version="1.0.0",
-    description="Secure proxy for Google Maps, Quran data, and more.",
+    description="Secure proxy for Quran data, mosque locations, and more.",
 )
 
 # Allow the Flutter web app to call this server during development
@@ -61,7 +61,7 @@ async def health_check():
 
 
 # ══════════════════════════════════════════════════════════════════
-# 1.  Nearby Mosques  (Google Places API proxy)
+# 1.  Nearby Mosques  (Overpass API proxy)
 # ══════════════════════════════════════════════════════════════════
 
 class MosqueResult(BaseModel):

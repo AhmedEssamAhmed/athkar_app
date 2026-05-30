@@ -1,41 +1,44 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/material.dart'; //this import is responsible for basic widgets like buttons, themes, navigation. everything visual comes from here
+import 'package:flutter/services.dart'; //this import provides service to control device level things like orientation , haptic feedback and clipboard
+import 'package:flutter_localizations/flutter_localizations.dart'; //for translating
+import 'package:provider/provider.dart'; //allow sharing of data across wdiget tree
+
+
 
 import 'core/storage/hive_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/providers/tasbeeh_provider.dart';
-import 'core/providers/prayer_time_provider.dart';
-import 'screens/entry/splash_screen.dart';
+import 'core/providers/prayer_time_provider.dart';  //core folder is for the shared infrastucture like storage or theme or global state
+import 'screens/entry/splash_screen.dart'; 
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/athkar/athkar_screen.dart';
 import 'screens/quran/quran_screen.dart';
 import 'screens/tasbeeh/tasbeeh_screen.dart';
-import 'screens/settings/settings_screen.dart';
+import 'screens/settings/settings_screen.dart'; //screens folder holds the UI pages
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() async { //this is the entry point of the app. async here means the function can use await to pause for async operations
+  WidgetsFlutterBinding.ensureInitialized(); //this part is mandatory before runApp(). this makes that the framework is attached to the native window
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
+    DeviceOrientation.portraitDown, //these lines lock the app to be portrait only
   ]);
+  
 
-  await HiveService.init();
+  await HiveService.init(); //Hive is a lightweight fast local database. this initialization is to store settings and counter data persistently
 
   final settingsProvider = SettingsProvider();
-  await settingsProvider.init();
+  await settingsProvider.init();   //these lines create a provider( which is a state container) for settings and loads saved data
 
   final prayerTimeProvider = PrayerTimeProvider();
-  prayerTimeProvider.setLanguage(isArabic: settingsProvider.isArabic);
+  prayerTimeProvider.setLanguage(isArabic: settingsProvider.isArabic); //this also provides a container but for prayer times and also sets the language based on settings
 
-  runApp(
-    MultiProvider(
+  runApp(  //takes root widget and renders it to screen
+    MultiProvider( //wraps multiple providers so any widget can access them
       providers: [
-        ChangeNotifierProvider.value(value: settingsProvider),
-        ChangeNotifierProvider.value(value: prayerTimeProvider),
-        ChangeNotifierProvider(create: (_) => TasbeehProvider()),
+        ChangeNotifierProvider.value(value: settingsProvider),  //language or theme
+        ChangeNotifierProvider.value(value: prayerTimeProvider), //prayer schedules
+        ChangeNotifierProvider(create: (_) => TasbeehProvider()), //created on demand for tasbeeh counter
       ],
       child: const NoorAthkarApp(),
     ),
