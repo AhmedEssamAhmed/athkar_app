@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../storage/hive_service.dart';
 
 /// State management for the Tasbeeh (digital counter) feature.
 ///
-/// Supports multiple dhikr presets, count tracking, target goals,
-/// and optional haptic feedback on every tap.
+/// Supports multiple dhikr presets, count tracking, target goals.
 class TasbeehProvider extends ChangeNotifier {
   int _count = 0;
   int _totalCount = 0; // lifetime total across resets
@@ -45,13 +43,9 @@ class TasbeehProvider extends ChangeNotifier {
     {'text': 'لا حول ولا قوة إلا بالله', 'target': 100},
   ];
 
-  /// Increment the counter by 1 with optional haptic feedback.
-  void increment({bool haptic = true}) {
+  void increment() {
     _count++;
     _totalCount++;
-    if (haptic) {
-      HapticFeedback.lightImpact();
-    }
     HiveService.cacheValue('count_$_currentDhikr', _count);
     notifyListeners();
   }

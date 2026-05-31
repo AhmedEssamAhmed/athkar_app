@@ -38,14 +38,14 @@ class AthkarCategoriesScreen extends StatelessWidget {
           final colors = [
             AppColors.gold,        // morning
             cs.primary,                    // evening
-            cs.primaryContainer,           // sleep
+            cs.primary,                    // sleep
             cs.tertiary,                   // after prayer
             AppColors.gold,        // travel
             cs.primary,                    // home
             cs.tertiary,                   // food
             AppColors.mutedSage,           // bathroom
-            cs.secondaryContainer,         // ruqya sunnah
-            cs.tertiaryContainer,          // ruqya quran
+            AppColors.gold,                // ruqya sunnah
+            cs.primary,                    // ruqya quran
           ];
 
           return Padding(

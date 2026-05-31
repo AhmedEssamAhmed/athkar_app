@@ -5,14 +5,12 @@ class SettingsProvider extends ChangeNotifier {
   static const _keyThemeMode = 'theme_mode';
   static const _keyLocale = 'locale';
   static const _keyOnboarded = 'is_onboarded';
-  static const _keyHapticEnabled = 'haptic_enabled';
   static const prayerNotificationsPrefsKey = 'prayer_notifications_enabled';
   static const athkarRemindersPrefsKey = 'athkar_reminders_enabled';
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale _locale = const Locale('ar');
   bool _isOnboarded = false;
-  bool _hapticEnabled = true;
   bool _prayerNotificationsEnabled = true;
   bool _athkarRemindersEnabled = true;
 
@@ -20,7 +18,6 @@ class SettingsProvider extends ChangeNotifier {
   Locale get locale => _locale;
   bool get isArabic => _locale.languageCode == 'ar';
   bool get isOnboarded => _isOnboarded;
-  bool get hapticEnabled => _hapticEnabled;
   bool get prayerNotificationsEnabled => _prayerNotificationsEnabled;
   bool get athkarRemindersEnabled => _athkarRemindersEnabled;
   TextDirection get textDirection =>
@@ -46,7 +43,6 @@ class SettingsProvider extends ChangeNotifier {
 
     _isOnboarded = prefs.getBool(_keyOnboarded) ?? false;
 
-    _hapticEnabled = prefs.getBool(_keyHapticEnabled) ?? true;
     _prayerNotificationsEnabled =
         prefs.getBool(prayerNotificationsPrefsKey) ?? true;
     _athkarRemindersEnabled = prefs.getBool(athkarRemindersPrefsKey) ?? true;
@@ -87,13 +83,6 @@ class SettingsProvider extends ChangeNotifier {
       ThemeMode.dark => ThemeMode.system,
     };
     await setThemeMode(next);
-  }
-
-  Future<void> setHapticEnabled(bool enabled) async {
-    _hapticEnabled = enabled;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyHapticEnabled, enabled);
   }
 
   Future<void> setPrayerNotificationsEnabled(bool enabled) async {

@@ -97,16 +97,6 @@ class _SettingsTile extends StatelessWidget {
           inactiveTrackColor: cs.onSurface.withAlpha(25),
         );
         break;
-      case 'haptic':
-        trailing = Switch.adaptive(
-          value: s.hapticEnabled,
-          onChanged: s.setHapticEnabled,
-          activeTrackColor: cs.primary.withAlpha(120),
-          activeThumbColor: Colors.white,
-          inactiveThumbColor: cs.onSurface.withAlpha(100),
-          inactiveTrackColor: cs.onSurface.withAlpha(25),
-        );
-        break;
       case 'about':
         trailing = Icon(Icons.chevron_right_rounded, color: cs.outline);
         onTap = () => _showAboutDialog(context, isArabic);
@@ -148,6 +138,21 @@ class _SettingsTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // App intro description
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    isArabic
+                        ? 'تطبيق نور الأذكار هو رفيقك الإسلامي المتكامل. يساعدك على البقاء على صلة بدينك طوال اليوم من خلال مواقيت الصلاة الدقيقة، الأذكار اليومية، المسبحة الرقمية، المصحف الشامل مع دعم القراءة بدون إنترنت، بوصلة القبلة، البحث عن المساجد القريبة، والإشعارات الذكية لمواقيت الصلاة والأذكار وأيام الصيام وغيرها. كل هذا في تطبيق واحد جميل يعمل بدون إنترنت ويدعم العربية والإنجليزية بشكل كامل.'
+                        : 'Noor Athkar is your complete Islamic companion app. It helps you stay connected to your faith throughout the day with accurate prayer times, daily athkar (remembrances), a digital Tasbeeh counter, a full Quran reader with offline support, a Qibla compass, nearby mosque finder, and smart notifications for prayer times, athkar, fasting days, and more. All in one beautiful, offline-first app with full Arabic and English support.',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: cs.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
                 _buildAboutSection(
                   icon: Icons.nightlight_round,
                   title: isArabic ? 'أفضل وقت لقيام الليل' : 'Best Time for Qiyam',

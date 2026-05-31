@@ -343,6 +343,7 @@ class _PersonalNotificationDialog extends StatefulWidget {
 
 class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog> {
   final _titleController = TextEditingController();
+  bool _titleError = false;
   bool _usePrayerTime = false;
   String _selectedPrayer = 'fajr';
   bool _isBeforePrayer = false;
@@ -398,7 +399,17 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
               decoration: InputDecoration(
                 labelText: isAr ? 'العنوان' : 'Title',
                 border: const OutlineInputBorder(),
+                errorText: _titleError
+                    ? (isAr ? 'يرجى إدخال عنوان للإشعار' : 'Please enter a title')
+                    : null,
+                errorStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
               ),
+              onChanged: (_) {
+                if (_titleError) setState(() => _titleError = false);
+              },
               textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
             ),
             const SizedBox(height: 16),
@@ -536,7 +547,10 @@ class _PersonalNotificationDialogState extends State<_PersonalNotificationDialog
         ),
         FilledButton(
           onPressed: () {
-            if (_titleController.text.isEmpty) return;
+            if (_titleController.text.trim().isEmpty) {
+              setState(() => _titleError = true);
+              return;
+            }
             final title = _titleController.text.trim();
             widget.onSaved(
               isAr ? (widget.existing?.titleEn ?? title) : title,

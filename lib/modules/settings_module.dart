@@ -56,14 +56,6 @@ class SettingsData {
       type: SettingsType.toggle,
     ),
     SettingsItem(
-      key: 'haptic',
-      titleEn: 'Haptic Feedback',
-      titleAr: 'الاهتزاز',
-      subtitleEn: 'Vibrate on tasbeeh tap',
-      subtitleAr: 'اهتزاز عند النقر على المسبحة',
-      type: SettingsType.toggle,
-    ),
-    SettingsItem(
       key: 'about',
       titleEn: 'About Noor',
       titleAr: 'عن نور',
