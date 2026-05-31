@@ -7,14 +7,12 @@ import '../services/quran_page_service.dart';
 /// Box names:
 ///   • `quran_offline`    – Downloaded Juz data (key = 'juz_1' .. 'juz_30')
 ///   • `quran_pages`      – Individual Quran pages (key = 'page_1' .. 'page_604')
-///   • `athkar_favorites` – User's favourite Dhikr items
 ///   • `tasbeeh_history`  – Lifetime counter history
 ///   • `app_cache`        – General cache (location info, etc.)
 class HiveService {
   // ── Box names ──────────────────────────────────────────────────
   static const String quranBox = 'quran_offline';
   static const String quranPagesBox = 'quran_pages';
-  static const String favoritesBox = 'athkar_favorites';
   static const String tasbeehBox = 'tasbeeh_history';
   static const String cacheBox = 'app_cache';
   static const String athkarProgressBox = 'athkar_progress';
@@ -25,7 +23,6 @@ class HiveService {
     // Open all boxes so they're ready for reads/writes
     await Hive.openBox(quranBox);
     await Hive.openBox(quranPagesBox);
-    await Hive.openBox(favoritesBox);
     await Hive.openBox(tasbeehBox);
     await Hive.openBox(cacheBox);
     await Hive.openBox(athkarProgressBox);
@@ -102,33 +99,6 @@ class HiveService {
   static int cachedPageCount() {
     final box = Hive.box(quranPagesBox);
     return box.length;
-  }
-
-  // ═════════════════════════════════════════════════════════════
-  // Athkar Favorites
-  // ═════════════════════════════════════════════════════════════
-
-  /// Toggle a Dhikr as favourite. Returns the new state.
-  static Future<bool> toggleFavorite(String dhikrId) async {
-    final box = Hive.box(favoritesBox);
-    final current = box.get(dhikrId, defaultValue: false) as bool;
-    await box.put(dhikrId, !current);
-    return !current;
-  }
-
-  /// Check if a Dhikr is marked as favourite.
-  static bool isFavorite(String dhikrId) {
-    final box = Hive.box(favoritesBox);
-    return box.get(dhikrId, defaultValue: false) as bool;
-  }
-
-  /// Get all favourite Dhikr IDs.
-  static List<String> allFavoriteIds() {
-    final box = Hive.box(favoritesBox);
-    return box.keys
-        .where((k) => box.get(k) == true)
-        .map((k) => k.toString())
-        .toList();
   }
 
   // ═════════════════════════════════════════════════════════════

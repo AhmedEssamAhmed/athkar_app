@@ -11,7 +11,6 @@ class Dhikr {
   final int repeatCount;
   final String? reference;
   final String category;
-  bool isFavorite;
 
   Dhikr({
     required this.id,
@@ -21,7 +20,6 @@ class Dhikr {
     this.repeatCount = 1,
     this.reference,
     required this.category,
-    this.isFavorite = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -32,7 +30,6 @@ class Dhikr {
         'repeatCount': repeatCount,
         'reference': reference,
         'category': category,
-        'isFavorite': isFavorite,
       };
 
   factory Dhikr.fromMap(Map<String, dynamic> map) => Dhikr(
@@ -43,7 +40,6 @@ class Dhikr {
         repeatCount: (map['repeatCount'] as int?) ?? 1,
         reference: map['reference'] as String?,
         category: map['category'] as String,
-        isFavorite: (map['isFavorite'] as bool?) ?? false,
       );
 }
 
