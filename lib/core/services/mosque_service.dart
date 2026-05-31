@@ -32,7 +32,7 @@ class Mosque {
 
 /// Communicates with the FastAPI `/api/mosques/nearby` endpoint.
 class MosqueService {
-  static const String _baseUrl = 'http://192.168.0.89:8000';
+  static const String _baseUrl = 'https://theory-bulk-region-paragraph.trycloudflare.com';
   final http.Client _client;
 
   MosqueService({http.Client? client}) : _client = client ?? http.Client();
