@@ -110,26 +110,29 @@ class AppShellState extends State<AppShell> {
       textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         body: IndexedStack(index: _index, children: _screens),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
-          items: [
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.home_rounded),
-                label: isAr ? 'الرئيسية' : 'Home'),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.auto_stories_rounded),
-                label: isAr ? 'الأذكار' : 'Athkar'),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.touch_app_rounded),
-                label: isAr ? 'المسبحة' : 'Tasbeeh'),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.menu_book_rounded),
-                label: isAr ? 'القرآن' : 'Quran'),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.settings_rounded),
-                label: isAr ? 'الإعدادات' : 'Settings'),
-          ],
+        bottomNavigationBar: Directionality(
+          textDirection: TextDirection.ltr, // Keep the footer bar LTR always (user exception)
+          child: BottomNavigationBar(
+            currentIndex: _index,
+            onTap: (i) => setState(() => _index = i),
+            items: [
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.home_rounded),
+                  label: isAr ? 'الرئيسية' : 'Home'),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.auto_stories_rounded),
+                  label: isAr ? 'الأذكار' : 'Athkar'),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.touch_app_rounded),
+                  label: isAr ? 'المسبحة' : 'Tasbeeh'),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.menu_book_rounded),
+                  label: isAr ? 'القرآن' : 'Quran'),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.settings_rounded),
+                  label: isAr ? 'الإعدادات' : 'Settings'),
+            ],
+          ),
         ),
       ),
     );
