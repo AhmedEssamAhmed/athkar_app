@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../storage/hive_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// Ayah model for Quran reader.
 class PageAyah {
@@ -52,56 +52,48 @@ class PageAyah {
   };
 }
 
-/// Service that fetches Quran pages directly from Alquran.cloud
-/// and caches them in Hive for offline access.
+/// Service that manages the Quran pages loaded from the offline asset file.
 class QuranPageService {
-  static const String _baseUrl = 'https://api.alquran.cloud/v1';
-  static const String _edition = 'quran-uthmani';
+  static Map<int, List<PageAyah>> _quranCache = {};
 
-  final http.Client _client;
-  QuranPageService({http.Client? client}) : _client = client ?? http.Client();
-
-  /// Fetch ayahs for a single page (1–604).
-  /// Returns cached data if available.
-  Future<List<PageAyah>> fetchPage(int pageNumber) async {
-    // Try cache first
-    final cached = HiveService.loadQuranPage(pageNumber);
-    if (cached != null) return cached;
-
-    // Fetch from API
-    final url = '$_baseUrl/page/$pageNumber/$_edition';
-    final response = await _client.get(Uri.parse(url));
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch page $pageNumber');
+  /// Pre-loads all 604 Quran pages from the offline JSON asset file.
+  /// This should be called during the application boot sequence (main.dart).
+  static Future<void> init() async {
+    if (_quranCache.isNotEmpty) return; // Already initialized
+    try {
+      final String response = await rootBundle.loadString('assets/data/quran.json');
+      final Map<String, dynamic> data = json.decode(response);
+      _quranCache = data.map((key, value) {
+        final pageNum = int.parse(key);
+        final list = (value as List).map((e) => PageAyah.fromJson(e as Map<String, dynamic>)).toList();
+        return MapEntry(pageNum, list);
+      });
+    } catch (e) {
+      debugPrint('Error loading offline Quran asset: $e');
+      _quranCache = {};
     }
-
-    final data = json.decode(response.body);
-    if (data['code'] != 200) {
-      throw Exception('Quran API error for page $pageNumber');
-    }
-
-    final ayahsJson = data['data']['ayahs'] as List;
-    final ayahs = ayahsJson.map((a) => PageAyah.fromJson(a)).toList();
-
-    // Cache for offline use
-    await HiveService.saveQuranPage(pageNumber, ayahs);
-
-    return ayahs;
   }
 
-  /// Fetch multiple pages in sequence (for pre-loading).
+  /// Fetch ayahs for a single page (1–604) synchronously from memory.
+  Future<List<PageAyah>> fetchPage(int pageNumber) async {
+    final page = _quranCache[pageNumber];
+    if (page != null) return page;
+    throw Exception('Quran page $pageNumber not found in offline database');
+  }
+
+  /// Fetch multiple pages in sequence from memory.
   Future<Map<int, List<PageAyah>>> fetchPages(int start, int end) async {
     final result = <int, List<PageAyah>>{};
     for (int p = start; p <= end; p++) {
-      try {
-        result[p] = await fetchPage(p);
-      } catch (_) {
-        // Skip failed pages
+      final page = _quranCache[p];
+      if (page != null) {
+        result[p] = page;
       }
     }
     return result;
   }
 
-  void dispose() => _client.close();
+  void dispose() {
+    // No HTTP client to close anymore, but kept to satisfy UI callbacks
+  }
 }

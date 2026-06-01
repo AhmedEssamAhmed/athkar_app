@@ -72,12 +72,4 @@ class TasbeehProvider extends ChangeNotifier {
     HiveService.cacheValue('last_dhikr', _currentDhikr);
     notifyListeners();
   }
-
-  /// Set a custom dhikr text.
-  void setCustomDhikr(String text, {int target = 100}) {
-    _currentDhikr = text;
-    _targetCount = target;
-    _count = 0;
-    notifyListeners();
-  }
 }

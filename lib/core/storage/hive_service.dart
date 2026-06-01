@@ -1,18 +1,13 @@
-import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../services/quran_page_service.dart';
 
 /// Centralized Hive storage manager for offline data.
 ///
 /// Box names:
-///   • `quran_offline`    – Downloaded Juz data (key = 'juz_1' .. 'juz_30')
-///   • `quran_pages`      – Individual Quran pages (key = 'page_1' .. 'page_604')
 ///   • `tasbeeh_history`  – Lifetime counter history
 ///   • `app_cache`        – General cache (location info, etc.)
+///   • `athkar_progress`  – Daily prayer count progress
 class HiveService {
   // ── Box names ──────────────────────────────────────────────────
-  static const String quranBox = 'quran_offline';
-  static const String quranPagesBox = 'quran_pages';
   static const String tasbeehBox = 'tasbeeh_history';
   static const String cacheBox = 'app_cache';
   static const String athkarProgressBox = 'athkar_progress';
@@ -21,84 +16,9 @@ class HiveService {
   static Future<void> init() async {
     await Hive.initFlutter();
     // Open all boxes so they're ready for reads/writes
-    await Hive.openBox(quranBox);
-    await Hive.openBox(quranPagesBox);
     await Hive.openBox(tasbeehBox);
     await Hive.openBox(cacheBox);
     await Hive.openBox(athkarProgressBox);
-  }
-
-  // ═════════════════════════════════════════════════════════════
-  // Quran Offline Storage
-  // ═════════════════════════════════════════════════════════════
-
-  /// Save a Juz's Ayahs as JSON for offline reading.
-  static Future<void> saveJuz(int juzNumber, List<Map<String, dynamic>> ayahs) async {
-    final box = Hive.box(quranBox);
-    await box.put('juz_$juzNumber', json.encode(ayahs));
-  }
-
-  /// Load a previously-downloaded Juz. Returns `null` if not downloaded.
-  static List<Map<String, dynamic>>? loadJuz(int juzNumber) {
-    final box = Hive.box(quranBox);
-    final raw = box.get('juz_$juzNumber');
-    if (raw == null) return null;
-    final decoded = json.decode(raw as String) as List;
-    return decoded.cast<Map<String, dynamic>>();
-  }
-
-  /// Check if a Juz has been downloaded.
-  static bool isJuzDownloaded(int juzNumber) {
-    final box = Hive.box(quranBox);
-    return box.containsKey('juz_$juzNumber');
-  }
-
-  /// Delete a downloaded Juz to free storage.
-  static Future<void> deleteJuz(int juzNumber) async {
-    final box = Hive.box(quranBox);
-    await box.delete('juz_$juzNumber');
-  }
-
-  /// Returns a list of Juz numbers that have been downloaded (1–30).
-  static List<int> downloadedJuzNumbers() {
-    final box = Hive.box(quranBox);
-    return box.keys
-        .where((k) => k.toString().startsWith('juz_'))
-        .map((k) => int.parse(k.toString().replaceFirst('juz_', '')))
-        .toList()
-      ..sort();
-  }
-
-  // ═════════════════════════════════════════════════════════════
-  // Quran Page-by-Page Storage
-  // ═════════════════════════════════════════════════════════════
-
-  /// Save a single Quran page's ayahs for offline reading.
-  static Future<void> saveQuranPage(int pageNumber, List<PageAyah> ayahs) async {
-    final box = Hive.box(quranPagesBox);
-    final jsonList = ayahs.map((a) => a.toJson()).toList();
-    await box.put('page_$pageNumber', json.encode(jsonList));
-  }
-
-  /// Load a cached Quran page. Returns null if not cached.
-  static List<PageAyah>? loadQuranPage(int pageNumber) {
-    final box = Hive.box(quranPagesBox);
-    final raw = box.get('page_$pageNumber');
-    if (raw == null) return null;
-    final decoded = json.decode(raw as String) as List;
-    return decoded.map((e) => PageAyah.fromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  /// Check if a page is cached.
-  static bool isPageCached(int pageNumber) {
-    final box = Hive.box(quranPagesBox);
-    return box.containsKey('page_$pageNumber');
-  }
-
-  /// Count how many pages are cached.
-  static int cachedPageCount() {
-    final box = Hive.box(quranPagesBox);
-    return box.length;
   }
 
   // ═════════════════════════════════════════════════════════════

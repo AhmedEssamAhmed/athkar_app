@@ -17,6 +17,7 @@ import 'screens/quran/quran_screen.dart';
 import 'screens/tasbeeh/tasbeeh_screen.dart';
 import 'screens/settings/settings_screen.dart'; //screens folder holds the UI pages
 import 'modules/athkar_module.dart'; //for pre-loading the JSON athkar data
+import 'core/services/quran_page_service.dart'; //for pre-loading the JSON Quran pages
 
 void main() async { //this is the entry point of the app. async here means the function can use await to pause for async operations
   WidgetsFlutterBinding.ensureInitialized(); //this part is mandatory before runApp(). this makes that the framework is attached to the native window
@@ -28,6 +29,8 @@ void main() async { //this is the entry point of the app. async here means the f
 
   await HiveService.init(); //Hive is a lightweight fast local database. this initialization is to store settings and counter data persistently
   await AthkarData.init(); //Pre-load the static supplications from the offline JSON asset file
+  await QuranPageService.init(); //Pre-load all 604 Quran pages from the offline JSON asset file
+
 
 
   final settingsProvider = SettingsProvider();
